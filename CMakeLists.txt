@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_msgs
   tf2_sensor_msgs
+  tf2_geometry_msgs
   nav_msgs
   geometry_msgs
   pcl_ros
@@ -128,6 +129,7 @@ catkin_package(
     tf2_ros
     tf2_msgs
     tf2_sensor_msgs
+    tf2_geometry_msgs
     nav_msgs
     geometry_msgs
     pcl_ros
@@ -172,7 +174,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(amcl_3d_node 
+add_executable(amcl_3d_node
 src/node.cpp
 src/mcl.cpp
 src/particle_filter.cpp

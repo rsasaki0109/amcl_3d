@@ -116,4 +116,13 @@ bool Amcl::setInitialPose(const Position &position, const Quat &quat, const Pose
     return pf_ptr_->init(position, quat, noise_gens, particle_num);
 }
 
+State Amcl::getMMSE(){
+    return pf_ptr_->getMMSE();
+}
+
+State Amcl::getMAP(){
+    return pf_ptr_->getMAP();
+}
+
+
 } // namespace amcl_3d

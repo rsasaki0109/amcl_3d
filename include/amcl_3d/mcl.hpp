@@ -26,6 +26,8 @@ public:
   bool setInitialPose(const Position &position, const Quat &quat);
   bool setInitialPose(const Position &position, const Quat &quat, const PoseCovariance &covariance);
   bool setInitialPose(const Position &position, const Quat &quat, const PoseCovariance &covariance, const size_t particle_num);
+  State getMMSE();
+  State getMAP();
 
 private:
   pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kd_map_ptr_;
