@@ -1,7 +1,6 @@
 [![Build Status](https://travis-ci.com/yukkysaito/amcl_3d.svg?branch=master)](https://travis-ci.com/yukkysaito/amcl_3d)
 
 I develop this package every weekend.
-The alpha version will release around mid-November
 
 # Work in progress
 90%
