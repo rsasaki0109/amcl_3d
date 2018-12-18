@@ -1,0 +1,56 @@
+<launch>
+  <rosparam param="/use_sim_time">true</rosparam>
+  <node name="rosbag_play" pkg="rosbag" type="play" args="/home/ubuntu/Downloads/short_test.bag -r 0.5 -l --clock" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find amcl_3d)/rviz/default.rviz"/>
+  <arg name="amcl_param/augmented_mcl/alpha_fast" default="0.95" />
+  <arg name="amcl_param/augmented_mcl/alpha_slow" default="0.05" />
+  <arg name="amcl_param/augmented_mcl/w_fast" default="0.5" />
+  <arg name="amcl_param/augmented_mcl/w_slow" default="0.5" />
+  <arg name="amcl_param/augmented_mcl/noise_x_var" default="1.0" />
+  <arg name="amcl_param/augmented_mcl/noise_y_var" default="1.0" />
+  <arg name="amcl_param/augmented_mcl/noise_z_var" default="0.2" />
+  <arg name="amcl_param/augmented_mcl/noise_roll_var" default="0.1" />
+  <arg name="amcl_param/augmented_mcl/noise_pitch_var" default="0.3" />
+  <arg name="amcl_param/augmented_mcl/noise_yaw_var" default="1.0" />
+  <arg name="amcl_param/resample_timing/ess_ratio_threshold" default="0.95" />
+  <arg name="amcl_param/kld_sampling/min_particle_num" default="10" />
+  <arg name="amcl_param/kld_sampling/delta" default="0.5" />
+  <arg name="amcl_param/kld_sampling/epsilon" default="0.5" />
+  <arg name="amcl_param/kld_sampling/x_bin_width" default="0.2" />
+  <arg name="amcl_param/kld_sampling/y_bin_width" default="0.2" />
+  <arg name="amcl_param/kld_sampling/z_bin_width" default="0.2" />
+  <arg name="map_frame_id" default="map" />
+  <arg name="base_link_frame_id" default="base_link" />
+  <arg name="odom_frame_id" default="odom" />
+  <arg name="publish_rate" default="1" />
+  <arg name="input_map" default="/mapcloud" />
+  <arg name="input_odom" default="/odom" />
+  <arg name="input_imu" default="/imu/data" />
+  <arg name="input_initialpose" default="/initialpose" />
+  <arg name="input_pc2" default="/cloud" />
+
+  <node pkg="amcl_3d" name="amcl_3d_node" type="amcl_3d_node" output="screen" >
+    <param name="amcl_param/augmented_mcl/alpha_fast" value="$(arg amcl_param/augmented_mcl/alpha_fast)" />
+    <param name="amcl_param/augmented_mcl/alpha_slow" value="$(arg amcl_param/augmented_mcl/alpha_slow)" />
+    <param name="amcl_param/augmented_mcl/w_fast" value="$(arg amcl_param/augmented_mcl/w_fast)" />
+    <param name="amcl_param/augmented_mcl/w_slow" value="$(arg amcl_param/augmented_mcl/w_slow)" />
+    <param name="amcl_param/augmented_mcl/noise_x_var" value="$(arg amcl_param/augmented_mcl/noise_x_var)" />
+    <param name="amcl_param/augmented_mcl/noise_y_var" value="$(arg amcl_param/augmented_mcl/noise_y_var)" />
+    <param name="amcl_param/augmented_mcl/noise_z_var" value="$(arg amcl_param/augmented_mcl/noise_z_var)" />
+    <param name="amcl_param/augmented_mcl/noise_roll_var" value="$(arg amcl_param/augmented_mcl/noise_roll_var)" />
+    <param name="amcl_param/augmented_mcl/noise_pitch_var" value="$(arg amcl_param/augmented_mcl/noise_pitch_var)" />
+    <param name="amcl_param/augmented_mcl/noise_yaw_var" value="$(arg amcl_param/augmented_mcl/noise_yaw_var)" />
+    <param name="amcl_param/resample_timing/ess_ratio_threshold" value="$(arg amcl_param/resample_timing/ess_ratio_threshold)" />
+    <param name="amcl_param/kld_sampling/min_particle_num" value="$(arg amcl_param/kld_sampling/min_particle_num)" />
+    <param name="amcl_param/kld_sampling/delta" value="$(arg amcl_param/kld_sampling/delta)" />
+    <param name="amcl_param/kld_sampling/epsilon" value="$(arg amcl_param/kld_sampling/epsilon)" />
+    <param name="amcl_param/kld_sampling/x_bin_width" value="$(arg amcl_param/kld_sampling/x_bin_width)" />
+    <param name="amcl_param/kld_sampling/y_bin_width" value="$(arg amcl_param/kld_sampling/y_bin_width)" />
+    <param name="amcl_param/kld_sampling/z_bin_width" value="$(arg amcl_param/kld_sampling/z_bin_width)" />
+    <remap from="map" to="$(arg input_map)"/>
+    <remap from="odom" to="$(arg input_odom)"/>
+    <remap from="imu" to="$(arg input_imu)"/>
+    <remap from="initialpose" to="$(arg input_initialpose)"/>
+    <remap from="pc2" to="$(arg input_pc2)"/>
+  </node>
+</launch>

@@ -11,7 +11,7 @@ class FooPredictionModel : public PredictionModelInterface
 public:
   FooPredictionModel();
   FooPredictionModel(const Eigen::Vector3d &vel, const Eigen::Vector3d &omega);
-  bool predict(State &state) override;
+  bool predict(State &state, bool rising_edge = false, bool falling_edge = false) override;
   bool predict(State &state, const double dt_sec);
   bool measumentLinearVelocity(const Eigen::Vector3d &vel);
   bool measumentAngularVelocity(const Eigen::Vector3d &omega);
@@ -19,6 +19,7 @@ public:
   Eigen::Vector3d getAngularVelocity();
 
 private:
+  ros::Time current_time_;
   ros::Time last_prediction_time_;
   Eigen::Vector3d vel_;
   Eigen::Vector3d omega_;

@@ -6,6 +6,6 @@ namespace amcl_3d
 class PredictionModelInterface
 {
 public:
-  virtual bool predict(State &state) = 0;
+  virtual bool predict(State &state, bool rising_edge = false, bool falling_edge = false) = 0;
 };
 } // namespace amcl_3d

@@ -308,9 +308,14 @@ State ParticleFilter::getMAP()
 }
 bool ParticleFilter::predict(std::shared_ptr<PredictionModelInterface> model)
 {
+    bool rising_edge = true;
+    bool falling_edge = false;
     for (State &state : *particles_ptr_)
+    for (size_t i = 0; i < particles_ptr_->size();++i)
     {
-        model->predict(state);
+        if (i == particles_ptr_->size()-1) falling_edge = true;
+        model->predict(particles_ptr_->at(i), rising_edge, falling_edge);
+        rising_edge = false;
     }
     return true;
 }
