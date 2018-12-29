@@ -72,6 +72,9 @@ Amcl3dNode::Amcl3dNode() : nh_(""), pnh_("~"), tf_listener_(tf_buffer_)
     pnh_.param<double>("amcl_param/augmented_mcl/noise_pitch_var", amcl_param.augmented_mcl.noise_pitch_var, double(0.3));
     pnh_.param<double>("amcl_param/augmented_mcl/noise_yaw_var", amcl_param.augmented_mcl.noise_yaw_var, double(1.0));
     pnh_.param<double>("amcl_param/resample_timing/ess_ratio_threshold", amcl_param.resample_timing.ess_ratio_threshold, double(0.9));
+    int initial_particle_num;
+    pnh_.param<int>("amcl_param/init_pose/initial_particle_num", initial_particle_num, int(10));
+    amcl_param.init_pose.initial_particle_num = (size_t)(initial_particle_num);
     int min_particle_num;
     pnh_.param<int>("amcl_param/kld_sampling/min_particle_num", min_particle_num, int(10));
     amcl_param.kld_sampling.min_particle_num = (size_t)(min_particle_num);

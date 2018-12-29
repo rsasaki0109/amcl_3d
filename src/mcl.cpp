@@ -38,7 +38,7 @@ bool Amcl::measureLidar(const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
     if (kd_map_ptr_ == nullptr || measuement == nullptr)
         return false;
     MeasurementState measurement_state;
-    const size_t random_sample_num = 10;
+    const size_t random_sample_num = 100;
     const double max_dist = 1.0;
     const double sigma = 1.0;
     std::shared_ptr<MeasurementModelInterface> model =
@@ -80,8 +80,9 @@ bool Amcl::measureLidar(const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
             std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ param_.augmented_mcl.noise_yaw_var);
         ParticleFilterInterface::NoiseGenerators
             noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
-        // pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // random resample
-        pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
+        // pf_ptr_->resample(pf_ptr_->getParticleNum(), 0.3, noise_gens); // random resample
+        pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // random resample
+        // pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
     }
     return true;
 }
@@ -94,7 +95,7 @@ bool Amcl::predict(std::shared_ptr<PredictionModelInterface> model)
 
 bool Amcl::setInitialPose(const Position &position, const Quat &quat, const PoseCovariance &covariance)
 {
-    return setInitialPose(position, quat, covariance, 10);
+    return setInitialPose(position, quat, covariance, param_.init_pose.initial_particle_num);
 }
 
 bool Amcl::setInitialPose(const Position &position, const Quat &quat, const PoseCovariance &covariance, const size_t particle_num)

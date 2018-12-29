@@ -36,9 +36,15 @@ struct AugmentedMCLParam
     double noise_pitch_var;
     double noise_yaw_var;
 };
+
 struct ResampleTimingParam
 {
     double ess_ratio_threshold;
+};
+
+struct InitialPoseParam
+{
+    double initial_particle_num;
 };
 
 struct KLDSamplingParam
@@ -56,6 +62,7 @@ struct AmclParam
     AugmentedMCLParam augmented_mcl;
     ResampleTimingParam resample_timing;
     KLDSamplingParam kld_sampling;
+    InitialPoseParam init_pose;
 };
 
 typedef std::vector<State> Particles;
