@@ -66,7 +66,7 @@ bool FooPredictionModel::predict(State &state, bool rising_edge, bool falling_ed
 
 bool FooPredictionModel::predict(State &state, const double dt_sec)
 {
-    std::normal_distribution<double> noise(0.0, 0.05);
+    std::normal_distribution<double> noise(0.0, 1);
 
     // printf("\n preditc()\n");
     // printf("before update\n");

@@ -131,7 +131,7 @@ bool ParticleFilter::resample(const KLDSamplingParam &param, const double random
         while (true)
         {
             // check kld boundary
-            if ((size_t)(kld_bound_particle_num + 0.5) <= new_particles_ptr->size())
+            if ((size_t)(kld_bound_particle_num + 0.5) <= new_particles_ptr->size() || param.max_particle_num < new_particles_ptr->size())
             {
                 break;
             }

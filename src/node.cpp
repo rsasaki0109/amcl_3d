@@ -78,6 +78,9 @@ Amcl3dNode::Amcl3dNode() : nh_(""), pnh_("~"), tf_listener_(tf_buffer_)
     int min_particle_num;
     pnh_.param<int>("amcl_param/kld_sampling/min_particle_num", min_particle_num, int(10));
     amcl_param.kld_sampling.min_particle_num = (size_t)(min_particle_num);
+    int max_particle_num;
+    pnh_.param<int>("amcl_param/kld_sampling/max_particle_num", max_particle_num, int(10));
+    amcl_param.kld_sampling.max_particle_num = (size_t)(max_particle_num);
     pnh_.param<double>("amcl_param/kld_sampling/delta", amcl_param.kld_sampling.delta, double(0.5));
     pnh_.param<double>("amcl_param/kld_sampling/epsilon", amcl_param.kld_sampling.epsilon, double(0.5));
     pnh_.param<double>("amcl_param/kld_sampling/x_bin_width", amcl_param.kld_sampling.x_bin_width, double(0.2));
@@ -152,9 +155,9 @@ void Amcl3dNode::initialPoseCallback(const geometry_msgs::PoseWithCovarianceStam
     covariance(/*x*/ 0, /*x*/ 0) = 0.5;         // x var
     covariance(/*y*/ 1, /*y*/ 1) = 0.5;         // y var
     covariance(/*z*/ 2, /*z*/ 2) = 0.5;         // z var
-    covariance(/*roll*/ 3, /*roll*/ 3) = 0.1;   // roll var
+    covariance(/*roll*/ 3, /*roll*/ 3) = 3.14;   // roll var
     covariance(/*pitch*/ 4, /*pitch*/ 4) = 0.1; // pitch var
-    covariance(/*yaw*/ 5, /*yaw*/ 5) = 0.1;     // yaw var
+    covariance(/*yaw*/ 5, /*yaw*/ 5) = 0.5;     // yaw var
   }
   // set initial pose
   if (!amcl_->setInitialPose(position, quat, covariance))

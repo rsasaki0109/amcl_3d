@@ -50,6 +50,7 @@ struct InitialPoseParam
 struct KLDSamplingParam
 {
     size_t min_particle_num;
+    size_t max_particle_num;
     double delta;
     double epsilon;
     double x_bin_width;

@@ -86,8 +86,8 @@ bool LidarMeasurementModel::measure(std::shared_ptr<Particles> particles_ptr, Me
     double weight_sum = 0.0;
     for (size_t i = 0; i < particles_ptr->size(); ++i)
     {
-        std::cout << "std::exp(v_log_likelihood.at(" << i << "))"
-                  << ", " << std::exp(v_log_likelihood.at(i)) << std::endl;
+        // std::cout << "std::exp(v_log_likelihood.at(" << i << "))"
+        //           << ", " << std::exp(v_log_likelihood.at(i)) << std::endl;
         weight_sum += std::exp(v_log_likelihood.at(i));
     }
     measurement_state.raw_weight_avg = weight_sum / (double)particles_ptr->size();

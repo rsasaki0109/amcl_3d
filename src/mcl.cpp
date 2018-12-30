@@ -52,17 +52,17 @@ bool Amcl::measureLidar(const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
         param_.augmented_mcl.w_slow +
         param_.augmented_mcl.alpha_slow * (measurement_state.raw_weight_avg - param_.augmented_mcl.w_slow);
     const double random_sampling_ratio = std::max(0.0, 1.0 - (param_.augmented_mcl.w_fast / param_.augmented_mcl.w_slow));
-    std::cout << "measurement_state.raw_weight_avg: " << measurement_state.raw_weight_avg << std::endl;
-    std::cout << "param_.augmented_mcl.w_fast: " << param_.augmented_mcl.w_fast << std::endl;
-    std::cout << "param_.augmented_mcl.w_slow: " << param_.augmented_mcl.w_slow << std::endl;
-    std::cout << " 1.0 - (param_.augmented_mcl.w_fast / param_.augmented_mcl.w_slow): " <<  1.0 - (param_.augmented_mcl.w_fast / param_.augmented_mcl.w_slow) << std::endl;
-    std::cout << "random_sampling_ratio: " << random_sampling_ratio << std::endl;
+    // std::cout << "measurement_state.raw_weight_avg: " << measurement_state.raw_weight_avg << std::endl;
+    // std::cout << "param_.augmented_mcl.w_fast: " << param_.augmented_mcl.w_fast << std::endl;
+    // std::cout << "param_.augmented_mcl.w_slow: " << param_.augmented_mcl.w_slow << std::endl;
+    // std::cout << " 1.0 - (param_.augmented_mcl.w_fast / param_.augmented_mcl.w_slow): " <<  1.0 - (param_.augmented_mcl.w_fast / param_.augmented_mcl.w_slow) << std::endl;
+    // std::cout << "random_sampling_ratio: " << random_sampling_ratio << std::endl;
     pf_ptr_->normalizeWeight();
 
     double checked_ess_ratio_threshold = std::max(param_.resample_timing.ess_ratio_threshold, 1.0 / (double)pf_ptr_->getParticleNum());
     // The smaller the ess ratio, the larger the variation of the weight
     const double ess_ratio = pf_ptr_->getESS(/*normalized*/ true) / (double)pf_ptr_->getParticleNum();
-    std::cout << "ess_ratio: " << ess_ratio << "(<= checked_ess_ratio_threshold:" << checked_ess_ratio_threshold << ")" << std::endl;
+    // std::cout << "ess_ratio: " << ess_ratio << "(<= checked_ess_ratio_threshold:" << checked_ess_ratio_threshold << ")" << std::endl;
 
     if (ess_ratio <= checked_ess_ratio_threshold)
     {
@@ -81,8 +81,8 @@ bool Amcl::measureLidar(const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
         ParticleFilterInterface::NoiseGenerators
             noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
         // pf_ptr_->resample(pf_ptr_->getParticleNum(), 0.3, noise_gens); // random resample
-        pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // random resample
-        // pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
+        // pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // random resample
+        pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
     }
     return true;
 }
