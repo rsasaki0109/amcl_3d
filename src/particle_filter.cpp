@@ -21,14 +21,18 @@ bool ParticleFilter::init(const Position &position, const Quat &quat, const Nois
         }
         // Add noise to quaternion
         {
-            Euler euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
-            const double &roll = euler[0];
-            const double &pitch = euler[1];
-            const double &yaw = euler[2];
-            Quat noised_quat(Eigen::AngleAxisd(roll + noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())     // roll
-                             * Eigen::AngleAxisd(pitch + noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
-                             * Eigen::AngleAxisd(yaw + noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
-            noised_state.quat = noised_quat;
+            // Euler euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
+            // const double &roll = euler[0];
+            // const double &pitch = euler[1];
+            // const double &yaw = euler[2];
+            // Quat noised_quat(Eigen::AngleAxisd(roll + noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())     // roll
+            //                  * Eigen::AngleAxisd(pitch + noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
+            //                  * Eigen::AngleAxisd(yaw + noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
+            // noised_state.quat = noised_quat;
+            Quat noise_quat(Eigen::AngleAxisd(noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())     // roll
+                             * Eigen::AngleAxisd(noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
+                             * Eigen::AngleAxisd(noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
+            noised_state.quat = noise_quat * quat;
         }
         // Initialize weight
         noised_state.weight = 1.0;
@@ -153,14 +157,18 @@ bool ParticleFilter::resample(const KLDSamplingParam &param, const double random
                 // Add noise to quaternion
                 {
                     const Quat &quat = particles_ptr_->at(random_sample_index).quat;
-                    Euler euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
-                    const double &roll = euler[0];
-                    const double &pitch = euler[1];
-                    const double &yaw = euler[2];
-                    Quat noised_quat(Eigen::AngleAxisd(roll + random_particle_noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())     // roll
-                                     * Eigen::AngleAxisd(pitch + random_particle_noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
-                                     * Eigen::AngleAxisd(yaw + random_particle_noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
-                    noised_state.quat = noised_quat;
+                    // Euler euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
+                    // const double &roll = euler[0];
+                    // const double &pitch = euler[1];
+                    // const double &yaw = euler[2];
+                    // Quat noised_quat(Eigen::AngleAxisd(roll + random_particle_noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())     // roll
+                    //                  * Eigen::AngleAxisd(pitch + random_particle_noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
+                    //                  * Eigen::AngleAxisd(yaw + random_particle_noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
+                    // noised_state.quat = noised_quat;
+                    Quat noise_quat(Eigen::AngleAxisd(random_particle_noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())    // roll
+                                    * Eigen::AngleAxisd(random_particle_noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
+                                    * Eigen::AngleAxisd(random_particle_noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ())); // yaw
+                    noised_state.quat = noise_quat * quat;
                 }
                 // Initialize weight
                 noised_state.weight = 1.0;

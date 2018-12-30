@@ -155,7 +155,7 @@ void Amcl3dNode::initialPoseCallback(const geometry_msgs::PoseWithCovarianceStam
     covariance(/*x*/ 0, /*x*/ 0) = 0.5;         // x var
     covariance(/*y*/ 1, /*y*/ 1) = 0.5;         // y var
     covariance(/*z*/ 2, /*z*/ 2) = 0.5;         // z var
-    covariance(/*roll*/ 3, /*roll*/ 3) = 3.14;   // roll var
+    covariance(/*roll*/ 3, /*roll*/ 3) = 0.5;   // roll var
     covariance(/*pitch*/ 4, /*pitch*/ 4) = 0.1; // pitch var
     covariance(/*yaw*/ 5, /*yaw*/ 5) = 0.5;     // yaw var
   }
