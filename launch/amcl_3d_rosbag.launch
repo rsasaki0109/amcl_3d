@@ -12,7 +12,7 @@
   <arg name="amcl_param/augmented_mcl/noise_roll_var" default="1.0" />
   <arg name="amcl_param/augmented_mcl/noise_pitch_var" default="1.0" />
   <arg name="amcl_param/augmented_mcl/noise_yaw_var" default="1.0" />
-  <arg name="amcl_param/init_pose/initial_particle_num" default="1000" />
+  <arg name="amcl_param/init_pose/initial_particle_num" default="100" />
   <arg name="amcl_param/resample_timing/ess_ratio_threshold" default="0.95" />
   <arg name="amcl_param/kld_sampling/min_particle_num" default="100" />
   <arg name="amcl_param/kld_sampling/max_particle_num" default="2000" />
