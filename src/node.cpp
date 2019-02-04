@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <memory>
 #include <tf2/transform_datatypes.h>
@@ -13,6 +14,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <boost/array.hpp>
+#include "amcl_3d/type.hpp"
+#include "amcl_3d/time.hpp"
 #include "amcl_3d/mcl.hpp"
 #include "amcl_3d/prediction_model/foo_prediction_model_node.hpp"
 #include "amcl_3d/prediction_model/foo_prediction_model.hpp"
@@ -39,20 +42,22 @@ private: // ros
   ros::Subscriber init_pose_sub_; // initial pose
   ros::Subscriber pc2_map_sub_;   // pointcloud2 map data
   ros::Subscriber pc2_sub_;       // pointcloud2 measurement data
+  ros::Subscriber ndt_pose_sub_;  // ndt pose measurement data
   ros::Timer publish_timer_;      // publish timer
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
   tf2_ros::TransformBroadcaster tf_broadcaster_;
   void mapCallback(const sensor_msgs::PointCloud2::ConstPtr &input_map_msg);
   void initialPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &input_init_pose_msg);
+  void ndtPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &input_ndt_pose_msg);
   void pc2Callback(const sensor_msgs::PointCloud2::ConstPtr &input_pc2_msg);
   void publishTimerCallback(const ros::TimerEvent &e);
 
 private:
   std::shared_ptr<Amcl> amcl_;
-  std::string map_frame_id_;
-  std::string base_link_frame_id_;
-  std::string odom_frame_id_;
+  // std::string map_frame_id_;
+  // std::string base_link_frame_id_;
+  // std::string odom_frame_id_;
   std::shared_ptr<FooPredictionModelNode> prediction_model_node_;
 };
 
@@ -90,20 +95,22 @@ Amcl3dNode::Amcl3dNode() : nh_(""), pnh_("~"), tf_listener_(tf_buffer_)
     prediction_model_node_ = std::make_shared<FooPredictionModelNode>(amcl_);
   }
   // ros param
-  pnh_.param<std::string>("map_frame_id", map_frame_id_, std::string("map"));
-  pnh_.param<std::string>("base_link_frame_id", base_link_frame_id_, std::string("base_link"));
-  pnh_.param<std::string>("odom_frame_id", odom_frame_id_, std::string("odom"));
+  // pnh_.param<std::string>("map_frame_id", map_frame_id_, std::string("map"));
+  // pnh_.param<std::string>("base_link_frame_id", base_link_frame_id_, std::string("base_link"));
+  // pnh_.param<std::string>("odom_frame_id", odom_frame_id_, std::string("odom"));
   double publish_rate;
   pnh_.param<double>("publish_rate", publish_rate, double(100.0));
   pf_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particles", 1, true);
   pc2_map_sub_ = nh_.subscribe("map", 10, &Amcl3dNode::mapCallback, this);
   init_pose_sub_ = nh_.subscribe("initialpose", 100, &Amcl3dNode::initialPoseCallback, this);
+  ndt_pose_sub_ = nh_.subscribe("ndt_pose", 1, &Amcl3dNode::ndtPoseCallback, this);
   pc2_sub_ = nh_.subscribe("pc2", 1, &Amcl3dNode::pc2Callback, this);
   publish_timer_ = nh_.createTimer(ros::Duration(1.0 / publish_rate), &Amcl3dNode::publishTimerCallback, this);
 }
 
 void Amcl3dNode::mapCallback(const sensor_msgs::PointCloud2::ConstPtr &input_map_msg)
 {
+#if 0
   sensor_msgs::PointCloud2::ConstPtr ros_map = input_map_msg;
   // transform map data to map frame id coordinate
   if (ros_map->header.frame_id != map_frame_id_)
@@ -128,6 +135,28 @@ void Amcl3dNode::mapCallback(const sensor_msgs::PointCloud2::ConstPtr &input_map
   pcl::fromROSMsg(*ros_map, *pc_map);
   // set map
   amcl_->setMap(pc_map);
+#endif
+}
+
+void Amcl3dNode::ndtPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &input_ndt_pose_msg)
+{
+  std::shared_ptr<const Particles> particles_ptr;
+  amcl_->getParticles(particles_ptr);
+  std::shared_ptr<Particles> copied_particles_ptr(new Particles(*particles_ptr)); // for time back
+  amcl_->predict(copied_particles_ptr, prediction_model_node_->getPredictionModel(), Time::fromROSTime(input_ndt_pose_msg->header.stamp));
+
+  const geometry_msgs::Point &ros_position = input_ndt_pose_msg->pose.position;
+  const geometry_msgs::Quaternion &ros_quat = input_ndt_pose_msg->pose.orientation;
+  Position position(ros_position.x, ros_position.y, ros_position.z);
+  Quat quat(ros_quat.x, ros_quat.y, ros_quat.z, ros_quat.w);
+  PoseCovariance covariance;
+  covariance(/*x*/ 0, /*x*/ 0) = 0.5;         // x var
+  covariance(/*y*/ 1, /*y*/ 1) = 0.5;         // y var
+  covariance(/*z*/ 2, /*z*/ 2) = 0.5;         // z var
+  covariance(/*roll*/ 3, /*roll*/ 3) = 0.5;   // roll var
+  covariance(/*pitch*/ 4, /*pitch*/ 4) = 0.1; // pitch var
+  covariance(/*yaw*/ 5, /*yaw*/ 5) = 0.5;     // yaw var
+  amcl_->measureNdtPose(copied_particles_ptr, position, quat, covariance);
 }
 
 void Amcl3dNode::initialPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &input_init_pose_msg)
@@ -166,6 +195,7 @@ void Amcl3dNode::initialPoseCallback(const geometry_msgs::PoseWithCovarianceStam
 
 void Amcl3dNode::pc2Callback(const sensor_msgs::PointCloud2::ConstPtr &input_pc2_msg)
 {
+#if 0
   amcl_->predict(prediction_model_node_->getPredictionModel());
   sensor_msgs::PointCloud2::ConstPtr ros_pc2 = input_pc2_msg;
   // transform sensor data to base link frame id coordinate
@@ -191,10 +221,12 @@ void Amcl3dNode::pc2Callback(const sensor_msgs::PointCloud2::ConstPtr &input_pc2
   pcl::fromROSMsg(*ros_pc2, *pc_measuement);
   // calculate likelihood and resample particle
   amcl_->measureLidar(pc_measuement);
+#endif
 }
 
 void Amcl3dNode::publishTimerCallback(const ros::TimerEvent &e)
 {
+#if 0
   const ros::Time current_time = ros::Time::now();
   amcl_->predict(prediction_model_node_->getPredictionModel());
   geometry_msgs::PoseArray output_msg;
@@ -248,6 +280,7 @@ void Amcl3dNode::publishTimerCallback(const ros::TimerEvent &e)
   ros_map2odom.header.stamp = current_time;
   ros_map2odom.transform = tf2::toMsg(tf_map2odom);
   tf_broadcaster_.sendTransform(ros_map2odom);
+#endif
 }
 
 } // namespace amcl_3d

@@ -179,20 +179,14 @@ src/node.cpp
 src/mcl.cpp
 src/particle_filter.cpp
 src/xorshift128.cpp
+src/time.cpp
 src/resample_noise/normal_distribution.cpp
 src/measurement_model/lidar_measurement_model.cpp
+src/measurement_model/ndt_pose_measurement_model.cpp
 src/prediction_model/foo_prediction_model.cpp
 src/prediction_model/foo_prediction_model_node.cpp
 )
-add_executable(test_amcl_3d
-src/test.cpp
-src/mcl.cpp
-src/particle_filter.cpp
-src/xorshift128.cpp
-src/resample_noise/normal_distribution.cpp
-src/measurement_model/lidar_measurement_model.cpp
-src/prediction_model/foo_prediction_model.cpp
-)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -202,13 +196,9 @@ src/prediction_model/foo_prediction_model.cpp
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(amcl_3d_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(test_amcl_3d ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(amcl_3d_node
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(test_amcl_3d
   ${catkin_LIBRARIES}
 )
 

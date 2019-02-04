@@ -5,23 +5,6 @@ namespace amcl_3d
 XorShift128 FooPredictionModel::rand_;
 FooPredictionModel::FooPredictionModel()
 {
-    //http://wiki.ros.org/roscpp/Overview/Time
-    /*
-    When using simulated Clock time, now() returns time 0 
-    until first message has been received on /clock, so 0 
-    means essentially that the client does not know clock 
-    time yet. A value of 0 should therefore be treated 
-    differently, such as looping over now() until non-zero 
-    is returned.
-    */
-    ros::Duration d = ros::Duration(0.1);
-    while (true)
-    {
-        if (ros::Time::now().toSec() != 0.0)
-            break;
-        d.sleep();
-    }
-    last_prediction_time_ = ros::Time::now();
     vel_ << 0.0, 0.0, 0.0;
     omega_ << 0.0, 0.0, 0.0;
 }
@@ -29,40 +12,8 @@ FooPredictionModel::FooPredictionModel(const Eigen::Vector3d &vel,
                                        const Eigen::Vector3d &omega)
     : vel_(vel), omega_(omega)
 {
-    //http://wiki.ros.org/roscpp/Overview/Time
-    /*
-    When using simulated Clock time, now() returns time 0 
-    until first message has been received on /clock, so 0 
-    means essentially that the client does not know clock 
-    time yet. A value of 0 should therefore be treated 
-    differently, such as looping over now() until non-zero 
-    is returned.
-    */
-    ros::Duration d = ros::Duration(0.1);
-    while (true)
-    {
-        if (ros::Time::now().toSec() != 0.0)
-            break;
-        d.sleep();
-    }
-    last_prediction_time_ = ros::Time::now();
 }
 
-bool FooPredictionModel::predict(State &state, bool rising_edge, bool falling_edge)
-{
-    if (rising_edge)
-        current_time_ = ros::Time::now();
-
-    const double dt_sec =
-        (current_time_ - last_prediction_time_).toSec();
-    if (dt_sec > 0.0)
-    {
-        predict(state, dt_sec);
-        if (falling_edge)
-            last_prediction_time_ = current_time_;
-    }
-    return true;
-}
 
 bool FooPredictionModel::predict(State &state, const double dt_sec)
 {

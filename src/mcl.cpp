@@ -1,5 +1,6 @@
 #include "amcl_3d/mcl.hpp"
 #include "amcl_3d/measurement_model/lidar_measurement_model.hpp"
+#include "amcl_3d/measurement_model/ndt_pose_measurement_model.hpp"
 #include "amcl_3d/resample_noise/normal_distribution.hpp"
 
 namespace amcl_3d
@@ -33,8 +34,9 @@ bool Amcl::getParticles(std::shared_ptr<const Particles> &particles_ptr)
     return true;
 }
 
-bool Amcl::measureLidar(const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
+bool Amcl::measureLidar(const Time &time, const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
 {
+#if 0
     if (kd_map_ptr_ == nullptr || measuement == nullptr)
         return false;
     MeasurementState measurement_state;
@@ -43,8 +45,25 @@ bool Amcl::measureLidar(const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
     const double sigma = 1.0;
     std::shared_ptr<MeasurementModelInterface> model =
         std::make_shared<LidarMeasurementModel>(kd_map_ptr_, measuement, random_sample_num, max_dist, sigma);
-    pf_ptr_->measure(model, measurement_state);
+    pf_ptr_->measure(model, time, measurement_state);
 
+    checkResample(measurement_state);
+#endif
+    return true;
+}
+
+bool Amcl::measureNdtPose(std::shared_ptr<const Particles> particles_ptr, const Position &position, const Quat &quat, const PoseCovariance &covariance)
+{
+    MeasurementState measurement_state;
+    std::shared_ptr<MeasurementModelInterface> model =
+        std::make_shared<NdtPoseMeasurementModel>(position, quat, covariance);
+    pf_ptr_->measure(particles_ptr, model, measurement_state);
+    checkResample(measurement_state);
+    return true;
+}
+
+bool Amcl::checkResample(const MeasurementState &measurement_state)
+{
     param_.augmented_mcl.w_fast =
         param_.augmented_mcl.w_fast +
         param_.augmented_mcl.alpha_fast * (measurement_state.raw_weight_avg - param_.augmented_mcl.w_fast);
@@ -78,18 +97,28 @@ bool Amcl::measureLidar(const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
             std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ param_.augmented_mcl.noise_pitch_var);
         std::shared_ptr<ResampleNoiseInterface> yaw_noise_ptr =
             std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ param_.augmented_mcl.noise_yaw_var);
-        ParticleFilterInterface::NoiseGenerators
+        ParticleFilter::NoiseGenerators
             noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
         // pf_ptr_->resample(pf_ptr_->getParticleNum(), 0.3, noise_gens); // random resample
         // pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // random resample
         pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
     }
-    return true;
 }
 
 bool Amcl::predict(std::shared_ptr<PredictionModelInterface> model)
 {
-    pf_ptr_->predict(model);
+    return predict(model, Time::getTimeNow());
+}
+
+bool Amcl::predict(std::shared_ptr<PredictionModelInterface> model, const Time &time)
+{
+    pf_ptr_->predict(model, time);
+    return true;
+}
+
+bool Amcl::predict(std::shared_ptr<Particles> particles_ptr, std::shared_ptr<PredictionModelInterface> model, const Time &time)
+{
+    pf_ptr_->predict(particles_ptr, model, time);
     return true;
 }
 
@@ -112,18 +141,19 @@ bool Amcl::setInitialPose(const Position &position, const Quat &quat, const Pose
         std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ covariance(4, 4));
     std::shared_ptr<ResampleNoiseInterface> yaw_noise_ptr =
         std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ covariance(5, 5));
-    ParticleFilterInterface::NoiseGenerators
+    ParticleFilter::NoiseGenerators
         noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
     return pf_ptr_->init(position, quat, noise_gens, particle_num);
 }
 
-State Amcl::getMMSE(){
+State Amcl::getMMSE()
+{
     return pf_ptr_->getMMSE();
 }
 
-State Amcl::getMAP(){
+State Amcl::getMAP()
+{
     return pf_ptr_->getMAP();
 }
-
 
 } // namespace amcl_3d

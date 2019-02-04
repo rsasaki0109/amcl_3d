@@ -2,7 +2,7 @@
 // #include <iostream>
 namespace amcl_3d
 {
-ParticleFilter::ParticleFilter() {}
+ParticleFilter::ParticleFilter() : particles_ptr_(std::make_shared<Particles>()) {}
 
 bool ParticleFilter::init(const Position &position, const Quat &quat, const NoiseGenerators &noise_gen, const size_t particle_num)
 {
@@ -29,9 +29,9 @@ bool ParticleFilter::init(const Position &position, const Quat &quat, const Nois
             //                  * Eigen::AngleAxisd(pitch + noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
             //                  * Eigen::AngleAxisd(yaw + noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
             // noised_state.quat = noised_quat;
-            Quat noise_quat(Eigen::AngleAxisd(noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())     // roll
-                             * Eigen::AngleAxisd(noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
-                             * Eigen::AngleAxisd(noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
+            Quat noise_quat(Eigen::AngleAxisd(noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())    // roll
+                            * Eigen::AngleAxisd(noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
+                            * Eigen::AngleAxisd(noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ())); // yaw
             noised_state.quat = noise_quat * quat;
         }
         // Initialize weight
@@ -40,6 +40,8 @@ bool ParticleFilter::init(const Position &position, const Quat &quat, const Nois
         particles_ptr_->push_back(noised_state);
     }
     normalizeWeight(particles_ptr_);
+
+    last_prediction_time_ = Time::getTimeNow();
     return true;
 }
 
@@ -314,23 +316,32 @@ State ParticleFilter::getMAP()
     }
     return map_state;
 }
-bool ParticleFilter::predict(std::shared_ptr<PredictionModelInterface> model)
+bool ParticleFilter::predict(std::shared_ptr<PredictionModelInterface> model, const Time &time)
 {
-    bool rising_edge = true;
-    bool falling_edge = false;
-    for (size_t i = 0; i < particles_ptr_->size(); ++i)
+    return predict(particles_ptr_, model, time);
+}
+
+bool ParticleFilter::predict(std::shared_ptr<Particles> particles_ptr, std::shared_ptr<PredictionModelInterface> model, const Time &time, bool update_time)
+{
+    double dt_sec = Time::getDiff(last_prediction_time_, time);
+    for (size_t i = 0; i < particles_ptr->size(); ++i)
     {
-        if (i == particles_ptr_->size() - 1)
-            falling_edge = true;
-        model->predict(particles_ptr_->at(i), rising_edge, falling_edge);
-        rising_edge = false;
+        model->predict(particles_ptr->at(i), dt_sec);
     }
+    if (update_time)
+        last_prediction_time_ = time;
     return true;
 }
 
 bool ParticleFilter::measure(std::shared_ptr<MeasurementModelInterface> model, MeasurementState &measuremnt_state)
 {
-    model->measure(particles_ptr_, measuremnt_state);
+    measure(particles_ptr_, model, measuremnt_state);
+    return true;
+}
+
+bool ParticleFilter::measure(std::shared_ptr<const Particles> measurement_point_particles_ptr, std::shared_ptr<MeasurementModelInterface> model, MeasurementState &measuremnt_state)
+{
+    model->measure(measurement_point_particles_ptr, particles_ptr_, measuremnt_state);
     return true;
 }
 
