@@ -335,14 +335,12 @@ bool ParticleFilter::predict(std::shared_ptr<Particles> particles_ptr, std::shar
 
 bool ParticleFilter::measure(std::shared_ptr<MeasurementModelInterface> model, MeasurementState &measuremnt_state)
 {
-    measure(particles_ptr_, model, measuremnt_state);
-    return true;
+    return measure(particles_ptr_, model, measuremnt_state);
 }
 
 bool ParticleFilter::measure(std::shared_ptr<const Particles> measurement_point_particles_ptr, std::shared_ptr<MeasurementModelInterface> model, MeasurementState &measuremnt_state)
 {
-    model->measure(measurement_point_particles_ptr, particles_ptr_, measuremnt_state);
-    return true;
+    return model->measure(measurement_point_particles_ptr, particles_ptr_, measuremnt_state);
 }
 
 bool ParticleFilter::getParticles(std::shared_ptr<const Particles> &particles_ptr)

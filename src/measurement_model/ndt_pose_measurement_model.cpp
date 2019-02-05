@@ -12,8 +12,12 @@ bool NdtPoseMeasurementModel::measure(std::shared_ptr<const Particles> mesuremen
                                       std::shared_ptr<Particles> particles_ptr,
                                       MeasurementState &measurement_state)
 {
+    if (mesurement_point_particles_ptr->empty() || particles_ptr->empty())
+        return false;
+
     PosisitonCovariance position_covariance;
     position_covariance = covariance_.block<3, 3>(0, 0);
+    constexpr double sigma = 1.0;
     // calc log likelihood each particlle
     std::vector<double> v_log_likelihood;
     v_log_likelihood.reserve(particles_ptr->size());
@@ -25,7 +29,11 @@ bool NdtPoseMeasurementModel::measure(std::shared_ptr<const Particles> mesuremen
          */
 
         double log_likelihood = 0.0;
+        // position likelihood
         log_likelihood = -1.0 / 2.0 * (state.position - position_).transpose() * position_covariance.inverse() * (state.position - position_);
+        // quaternion likelihood
+        const double distance = (1.0 - state.quat.dot(quat_) * state.quat.dot(quat_));
+        log_likelihood += -1.0 / 2.0 * (distance * distance) / (sigma * sigma);
 
         v_log_likelihood.push_back(log_likelihood);
     }

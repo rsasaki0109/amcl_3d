@@ -55,6 +55,7 @@ private: // ros
 
 private:
   std::shared_ptr<Amcl> amcl_;
+  std::string world_frame_id_;
   // std::string map_frame_id_;
   // std::string base_link_frame_id_;
   // std::string odom_frame_id_;
@@ -95,16 +96,17 @@ Amcl3dNode::Amcl3dNode() : nh_(""), pnh_("~"), tf_listener_(tf_buffer_)
     prediction_model_node_ = std::make_shared<FooPredictionModelNode>(amcl_);
   }
   // ros param
+  pnh_.param<std::string>("world_frame_id", world_frame_id_, std::string("world"));
   // pnh_.param<std::string>("map_frame_id", map_frame_id_, std::string("map"));
   // pnh_.param<std::string>("base_link_frame_id", base_link_frame_id_, std::string("base_link"));
   // pnh_.param<std::string>("odom_frame_id", odom_frame_id_, std::string("odom"));
   double publish_rate;
   pnh_.param<double>("publish_rate", publish_rate, double(100.0));
   pf_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particles", 1, true);
-  pc2_map_sub_ = nh_.subscribe("map", 10, &Amcl3dNode::mapCallback, this);
+//  pc2_map_sub_ = nh_.subscribe("map", 10, &Amcl3dNode::mapCallback, this);
   init_pose_sub_ = nh_.subscribe("initialpose", 100, &Amcl3dNode::initialPoseCallback, this);
   ndt_pose_sub_ = nh_.subscribe("ndt_pose", 1, &Amcl3dNode::ndtPoseCallback, this);
-  pc2_sub_ = nh_.subscribe("pc2", 1, &Amcl3dNode::pc2Callback, this);
+//  pc2_sub_ = nh_.subscribe("pc2", 1, &Amcl3dNode::pc2Callback, this);
   publish_timer_ = nh_.createTimer(ros::Duration(1.0 / publish_rate), &Amcl3dNode::publishTimerCallback, this);
 }
 
@@ -145,10 +147,30 @@ void Amcl3dNode::ndtPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &inp
   std::shared_ptr<Particles> copied_particles_ptr(new Particles(*particles_ptr)); // for time back
   amcl_->predict(copied_particles_ptr, prediction_model_node_->getPredictionModel(), Time::fromROSTime(input_ndt_pose_msg->header.stamp));
 
-  const geometry_msgs::Point &ros_position = input_ndt_pose_msg->pose.position;
-  const geometry_msgs::Quaternion &ros_quat = input_ndt_pose_msg->pose.orientation;
+  // transform map data to world frame id coordinate
+  geometry_msgs::PoseStamped::Ptr ndt_pose(new geometry_msgs::PoseStamped(*input_ndt_pose_msg));
+  if (input_ndt_pose_msg->header.frame_id != world_frame_id_)
+  {
+    geometry_msgs::TransformStamped transform_stamped;
+    try
+    {
+      transform_stamped = tf_buffer_.lookupTransform(/*target*/ world_frame_id_, /*src*/ input_ndt_pose_msg->header.frame_id,
+                                                     input_ndt_pose_msg->header.stamp);
+      geometry_msgs::PoseStamped::Ptr transformed_ndt_pose(new geometry_msgs::PoseStamped());
+      tf2::doTransform(*input_ndt_pose_msg, *transformed_ndt_pose, transform_stamped);
+      ndt_pose = transformed_ndt_pose;
+    }
+    catch (tf2::TransformException &ex)
+    {
+      ROS_WARN("%s", ex.what());
+      return;
+    }
+  }
+
+  const geometry_msgs::Point &ros_position = ndt_pose->pose.position;
+  const geometry_msgs::Quaternion &ros_quat = ndt_pose->pose.orientation;
   Position position(ros_position.x, ros_position.y, ros_position.z);
-  Quat quat(ros_quat.x, ros_quat.y, ros_quat.z, ros_quat.w);
+  Quat quat(ros_quat.w, ros_quat.x, ros_quat.y, ros_quat.z);
   PoseCovariance covariance;
   covariance(/*x*/ 0, /*x*/ 0) = 0.5;         // x var
   covariance(/*y*/ 1, /*y*/ 1) = 0.5;         // y var
@@ -167,26 +189,27 @@ void Amcl3dNode::initialPoseCallback(const geometry_msgs::PoseWithCovarianceStam
   const geometry_msgs::Quaternion &ros_quat = input_init_pose_msg->pose.pose.orientation;
   const boost::array<double, 36ul> &ros_covariance = input_init_pose_msg->pose.covariance;
   Position position(ros_position.x, ros_position.y, ros_position.z);
-  Quat quat(ros_quat.x, ros_quat.y, ros_quat.z, ros_quat.w);
+  Quat quat(ros_quat.w, ros_quat.x, ros_quat.y, ros_quat.z);
+
   PoseCovariance covariance;
-  covariance(/*x*/ 0, /*x*/ 0) = ros_covariance.at(/*x*/ 1 * 1 - 1);             // x var
-  covariance(/*y*/ 1, /*y*/ 1) = ros_covariance.at(/*y*/ 2 * 2 - 1);             // y var
-  covariance(/*z*/ 2, /*z*/ 2) = ros_covariance.at(/*z*/ 3 * 3 - 1);             // z var
-  covariance(/*roll*/ 3, /*roll*/ 3) = ros_covariance.at(/*roll*/ 4 * 4 - 1);    // roll var
-  covariance(/*pitch*/ 4, /*pitch*/ 4) = ros_covariance.at(/*pitch*/ 5 * 5 - 1); // pitch var
-  covariance(/*yaw*/ 5, /*yaw*/ 5) = ros_covariance.at(/*yaw*/ 6 * 6 - 1);       // yaw var
+  covariance(/*x*/ 0, /*x*/ 0) = ros_covariance.at(/*x*/ 0 * 6 + 0);             // x var
+  covariance(/*y*/ 1, /*y*/ 1) = ros_covariance.at(/*y*/ 1 * 6 + 1);             // y var
+  covariance(/*z*/ 2, /*z*/ 2) = ros_covariance.at(/*z*/ 2 * 6 + 2);             // z var
+  covariance(/*roll*/ 3, /*roll*/ 3) = ros_covariance.at(/*roll*/ 3 * 6 + 3);    // roll var
+  covariance(/*pitch*/ 4, /*pitch*/ 4) = ros_covariance.at(/*pitch*/ 4 * 6 + 4); // pitch var
+  covariance(/*yaw*/ 5, /*yaw*/ 5) = ros_covariance.at(/*yaw*/ 5 * 6 + 5);       // yaw var
   // warn wrong covariance
-  if (covariance(/*x*/ 0, /*x*/ 0) == 0.0 || covariance(/*y*/ 1, /*y*/ 1) == 0.0 ||
-      covariance(/*z*/ 2, /*z*/ 2) == 0.0 || covariance(/*roll*/ 3, /*roll*/ 3) == 0.0 ||
-      covariance(/*pitch*/ 4, /*pitch*/ 4) == 0.0 || covariance(/*yaw*/ 5, /*yaw*/ 5) == 0.0)
+  if (covariance(/*x*/ 0, /*x*/ 0) == 0.0 && covariance(/*y*/ 1, /*y*/ 1) == 0.0 &&
+      covariance(/*z*/ 2, /*z*/ 2) == 0.0 && covariance(/*roll*/ 3, /*roll*/ 3) == 0.0 &&
+      covariance(/*pitch*/ 4, /*pitch*/ 4) == 0.0 && covariance(/*yaw*/ 5, /*yaw*/ 5) == 0.0)
   {
     ROS_WARN("Covariance is 0. Please check & set covariance");
     covariance(/*x*/ 0, /*x*/ 0) = 0.5;         // x var
     covariance(/*y*/ 1, /*y*/ 1) = 0.5;         // y var
     covariance(/*z*/ 2, /*z*/ 2) = 0.5;         // z var
-    covariance(/*roll*/ 3, /*roll*/ 3) = 0.5;   // roll var
+    covariance(/*roll*/ 3, /*roll*/ 3) = 0.1;   // roll var
     covariance(/*pitch*/ 4, /*pitch*/ 4) = 0.1; // pitch var
-    covariance(/*yaw*/ 5, /*yaw*/ 5) = 0.5;     // yaw var
+    covariance(/*yaw*/ 5, /*yaw*/ 5) = 0.1;     // yaw var
   }
   // set initial pose
   if (!amcl_->setInitialPose(position, quat, covariance))
@@ -226,13 +249,13 @@ void Amcl3dNode::pc2Callback(const sensor_msgs::PointCloud2::ConstPtr &input_pc2
 
 void Amcl3dNode::publishTimerCallback(const ros::TimerEvent &e)
 {
-#if 0
+#if 1
   const ros::Time current_time = ros::Time::now();
   amcl_->predict(prediction_model_node_->getPredictionModel());
   geometry_msgs::PoseArray output_msg;
 
   output_msg.header.stamp = current_time;
-  output_msg.header.frame_id = map_frame_id_;
+  output_msg.header.frame_id = world_frame_id_;
   std::shared_ptr<const Particles> particles_ptr;
   amcl_->getParticles(particles_ptr);
   for (const State &state : *particles_ptr)
@@ -248,7 +271,8 @@ void Amcl3dNode::publishTimerCallback(const ros::TimerEvent &e)
     output_msg.poses.push_back(particle);
   }
   pf_pub_.publish(output_msg);
-
+#endif
+#if 0
   // tf publish
   tf2::Transform tf_odom2base_link;
   tf2::Transform tf_map2odom;

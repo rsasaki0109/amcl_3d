@@ -26,19 +26,7 @@ Time Time::fromROSTime(const ros::Time &ros_time)
 }
 double Time::getDiff(const Time &start, const Time &end)
 {
-
-    Time time;
-    if (((int)end.nsec - (int)start.nsec) < 0)
-    {
-        time.sec = end.sec - start.sec - 1;
-        time.nsec = end.nsec - start.nsec + 1000000000;
-    }
-    else
-    {
-        time.sec = end.sec - start.sec;
-        time.nsec = end.nsec - start.nsec;
-    }
-    return (double)time.sec + (double)time.nsec / 1000000000.0;
+    return ((double)end.sec + (double)end.nsec / 1000000000.0) - ((double)start.sec + (double)start.nsec / 1000000000.0);
 }
 Time Time::getTimeNow()
 {

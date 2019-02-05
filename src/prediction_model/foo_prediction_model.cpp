@@ -21,14 +21,14 @@ bool FooPredictionModel::predict(State &state, const double dt_sec)
     const Eigen::Vector3d vel_map = rot_map2base_link.inverse() * vel_;
     /* linear */
     {
-        std::normal_distribution<double> noise(0.0, 1);
-        state.position.x() += (vel_map.x() + noise(rand_)) * dt_sec;
-        state.position.y() += (vel_map.y() + noise(rand_)) * dt_sec;
-        state.position.z() += (vel_map.z() + noise(rand_)) * dt_sec;
+        std::normal_distribution<double> noise(1.0, 1.0);
+        state.position.x() += (vel_map.x() * noise(rand_)) * dt_sec;
+        state.position.y() += (vel_map.y() * noise(rand_)) * dt_sec;
+        state.position.z() += (vel_map.z() * noise(rand_)) * dt_sec;
     }
     /* rotation */
     {
-        std::normal_distribution<double> noise(0.0, 0.4);
+        std::normal_distribution<double> noise(0.0, 0.5);
         Eigen::Matrix3d skew_omega;
         skew_omega << 0.0, -omega_.z() + noise(rand_), omega_.y() + noise(rand_),
             omega_.z() + noise(rand_), 0.0, -omega_.x() + noise(rand_),
