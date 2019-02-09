@@ -295,10 +295,37 @@ State ParticleFilter::getMMSE()
     mmse_state.weight = weight_sum;
     for (const auto &particle : *particles_ptr_)
     {
-        mmse_state.position.x() = particle.position.x() * (particle.weight / weight_sum);
-        mmse_state.position.y() = particle.position.y() * (particle.weight / weight_sum);
-        mmse_state.position.z() = particle.position.z() * (particle.weight / weight_sum);
+        mmse_state.position.x() += particle.position.x() * (particle.weight / weight_sum);
+        mmse_state.position.y() += particle.position.y() * (particle.weight / weight_sum);
+        mmse_state.position.z() += particle.position.z() * (particle.weight / weight_sum);
     }
+
+    Eigen::Vector2d vec_roll, vec_pitch, vec_yaw;
+    vec_roll.x() = 0.0;
+    vec_roll.y() = 0.0;
+    vec_pitch.x() = 0.0;
+    vec_pitch.y() = 0.0;
+    vec_yaw.x() = 0.0;
+    vec_yaw.y() = 0.0;
+    for (const auto &particle : *particles_ptr_)
+    {
+        Euler euler = particle.quat.toRotationMatrix().eulerAngles(0, 1, 2);
+        vec_roll.x() += std::cos(euler[0]) * particle.weight / weight_sum;
+        vec_roll.y() += std::sin(euler[0]) * particle.weight / weight_sum;
+        vec_pitch.x() += std::cos(euler[1]) * particle.weight / weight_sum;
+        vec_pitch.y() += std::sin(euler[1]) * particle.weight / weight_sum;
+        vec_yaw.x() += std::cos(euler[2]) * particle.weight / weight_sum;
+        vec_yaw.y() += std::sin(euler[2]) * particle.weight / weight_sum;
+    }
+    double roll, pitch, yaw;
+    roll = std::atan2(vec_roll.y(), vec_roll.x());
+    pitch = std::atan2(vec_pitch.y(), vec_pitch.x());
+    yaw = std::atan2(vec_yaw.y(), vec_yaw.x());
+
+    mmse_state.quat = Quat(Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())    // roll
+                           * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) // pitch
+                           * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ())); // yaw
+
     return mmse_state;
 }
 

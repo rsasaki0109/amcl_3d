@@ -17,7 +17,7 @@ bool NdtPoseMeasurementModel::measure(std::shared_ptr<const Particles> mesuremen
 
     PosisitonCovariance position_covariance;
     position_covariance = covariance_.block<3, 3>(0, 0);
-    constexpr double sigma = 1.0;
+    constexpr double sigma = 0.1;
     // calc log likelihood each particlle
     std::vector<double> v_log_likelihood;
     v_log_likelihood.reserve(particles_ptr->size());

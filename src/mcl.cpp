@@ -84,7 +84,7 @@ bool Amcl::checkResample(const MeasurementState &measurement_state)
     double checked_ess_ratio_threshold = std::max(param_.resample_timing.ess_ratio_threshold, 1.0 / (double)pf_ptr_->getParticleNum());
     // The smaller the ess ratio, the larger the variation of the weight
     const double ess_ratio = pf_ptr_->getESS(/*normalized*/ true) / (double)pf_ptr_->getParticleNum();
-    std::cout << "ess_ratio: " << ess_ratio << "(<= checked_ess_ratio_threshold:" << checked_ess_ratio_threshold << ")" << std::endl;
+    // std::cout << "ess_ratio: " << ess_ratio << "(<= checked_ess_ratio_threshold:" << checked_ess_ratio_threshold << ")" << std::endl;
 
     if (ess_ratio <= checked_ess_ratio_threshold)
     {
@@ -102,9 +102,9 @@ bool Amcl::checkResample(const MeasurementState &measurement_state)
             std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ param_.augmented_mcl.noise_yaw_var);
         ParticleFilter::NoiseGenerators
             noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
-        pf_ptr_->resample(pf_ptr_->getParticleNum(), 0.0, noise_gens); // random resample
+        // pf_ptr_->resample(pf_ptr_->getParticleNum(), 0.0, noise_gens); // random resample
         // pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // random resample
-        // pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
+        pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
     }
 }
 

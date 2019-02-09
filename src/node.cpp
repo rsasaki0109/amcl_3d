@@ -39,6 +39,7 @@ private: // ros
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
   ros::Publisher pf_pub_;
+  ros::Publisher current_pose_pub_;
   ros::Subscriber init_pose_sub_; // initial pose
   ros::Subscriber pc2_map_sub_;   // pointcloud2 map data
   ros::Subscriber pc2_sub_;       // pointcloud2 measurement data
@@ -103,10 +104,11 @@ Amcl3dNode::Amcl3dNode() : nh_(""), pnh_("~"), tf_listener_(tf_buffer_)
   double publish_rate;
   pnh_.param<double>("publish_rate", publish_rate, double(100.0));
   pf_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particles", 1, true);
-//  pc2_map_sub_ = nh_.subscribe("map", 10, &Amcl3dNode::mapCallback, this);
+  current_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("current_pose", 1, true);
+  //  pc2_map_sub_ = nh_.subscribe("map", 10, &Amcl3dNode::mapCallback, this);
   init_pose_sub_ = nh_.subscribe("initialpose", 100, &Amcl3dNode::initialPoseCallback, this);
   ndt_pose_sub_ = nh_.subscribe("ndt_pose", 1, &Amcl3dNode::ndtPoseCallback, this);
-//  pc2_sub_ = nh_.subscribe("pc2", 1, &Amcl3dNode::pc2Callback, this);
+  //  pc2_sub_ = nh_.subscribe("pc2", 1, &Amcl3dNode::pc2Callback, this);
   publish_timer_ = nh_.createTimer(ros::Duration(1.0 / publish_rate), &Amcl3dNode::publishTimerCallback, this);
 }
 
@@ -154,7 +156,12 @@ void Amcl3dNode::ndtPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &inp
     geometry_msgs::TransformStamped transform_stamped;
     try
     {
-      transform_stamped = tf_buffer_.lookupTransform(/*target*/ world_frame_id_, /*src*/ input_ndt_pose_msg->header.frame_id,
+      std::string src_frame_id = input_ndt_pose_msg->header.frame_id;
+      if (src_frame_id.front() == '/')
+      {
+        src_frame_id.erase(0, 1);
+      }
+      transform_stamped = tf_buffer_.lookupTransform(/*target*/ world_frame_id_, /*src*/ src_frame_id,
                                                      input_ndt_pose_msg->header.stamp);
       geometry_msgs::PoseStamped::Ptr transformed_ndt_pose(new geometry_msgs::PoseStamped());
       tf2::doTransform(*input_ndt_pose_msg, *transformed_ndt_pose, transform_stamped);
@@ -172,12 +179,20 @@ void Amcl3dNode::ndtPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &inp
   Position position(ros_position.x, ros_position.y, ros_position.z);
   Quat quat(ros_quat.w, ros_quat.x, ros_quat.y, ros_quat.z);
   PoseCovariance covariance;
-  covariance(/*x*/ 0, /*x*/ 0) = 0.5;         // x var
-  covariance(/*y*/ 1, /*y*/ 1) = 0.5;         // y var
-  covariance(/*z*/ 2, /*z*/ 2) = 0.5;         // z var
+  covariance(/*x*/ 0, /*x*/ 0) = 1.0;         // x var
+  covariance(/*y*/ 1, /*y*/ 1) = 1.0;         // y var
+  covariance(/*z*/ 2, /*z*/ 2) = 1.0;         // z var
   covariance(/*roll*/ 3, /*roll*/ 3) = 0.5;   // roll var
   covariance(/*pitch*/ 4, /*pitch*/ 4) = 0.1; // pitch var
   covariance(/*yaw*/ 5, /*yaw*/ 5) = 0.5;     // yaw var
+  // std::cout << position.x() << ", "
+  //           << position.y() << ", "
+  //           << position.z() << ", "
+  //           << quat.x() << ", "
+  //           << quat.y() << ", "
+  //           << quat.z() << ", "
+  //           << quat.w() << std::endl;
+
   amcl_->measureNdtPose(copied_particles_ptr, position, quat, covariance);
 }
 
@@ -249,13 +264,13 @@ void Amcl3dNode::pc2Callback(const sensor_msgs::PointCloud2::ConstPtr &input_pc2
 
 void Amcl3dNode::publishTimerCallback(const ros::TimerEvent &e)
 {
-#if 1
+  // particles
   const ros::Time current_time = ros::Time::now();
   amcl_->predict(prediction_model_node_->getPredictionModel());
-  geometry_msgs::PoseArray output_msg;
+  geometry_msgs::PoseArray output_particle_msg;
 
-  output_msg.header.stamp = current_time;
-  output_msg.header.frame_id = world_frame_id_;
+  output_particle_msg.header.stamp = current_time;
+  output_particle_msg.header.frame_id = world_frame_id_;
   std::shared_ptr<const Particles> particles_ptr;
   amcl_->getParticles(particles_ptr);
   for (const State &state : *particles_ptr)
@@ -268,43 +283,54 @@ void Amcl3dNode::publishTimerCallback(const ros::TimerEvent &e)
     particle.orientation.y = state.quat.y();
     particle.orientation.z = state.quat.z();
     particle.orientation.w = state.quat.w();
-    output_msg.poses.push_back(particle);
+    output_particle_msg.poses.push_back(particle);
   }
-  pf_pub_.publish(output_msg);
-#endif
-#if 0
+  pf_pub_.publish(output_particle_msg);
+
   // tf publish
-  tf2::Transform tf_odom2base_link;
-  tf2::Transform tf_map2odom;
+  tf2::Transform tf_world2base_link;
+  tf2::Transform tf_world2map;
   tf2::Transform tf_map2base_link;
-  try {
-    geometry_msgs::TransformStamped ros_odom2base_link;
-    ros_odom2base_link = tf_buffer_.lookupTransform("odom", "base_link", ros::Time(0));
-    tf2::fromMsg(ros_odom2base_link.transform, tf_odom2base_link);
-  } catch (tf2::TransformException &ex) {
+  try
+  {
+    geometry_msgs::TransformStamped ros_world2map;
+    ros_world2map = tf_buffer_.lookupTransform("world", "map", ros::Time(0));
+    tf2::fromMsg(ros_world2map.transform, tf_world2map);
+  }
+  catch (tf2::TransformException &ex)
+  {
     ROS_WARN("%s", ex.what());
     return;
   }
-  State map2base_link = amcl_->getMAP();
+  State world2base_link = amcl_->getMMSE();
   {
-    geometry_msgs::Pose ros_map2base_link;
-    ros_map2base_link.position.x = map2base_link.position.x();
-    ros_map2base_link.position.y = map2base_link.position.y();
-    ros_map2base_link.position.z = map2base_link.position.z();
-    ros_map2base_link.orientation.x = map2base_link.quat.x();
-    ros_map2base_link.orientation.y = map2base_link.quat.y();
-    ros_map2base_link.orientation.z = map2base_link.quat.z();
-    ros_map2base_link.orientation.w = map2base_link.quat.w();
-    tf2::fromMsg(ros_map2base_link, tf_map2base_link);
+    geometry_msgs::Pose ros_world2base_link;
+    ros_world2base_link.position.x = world2base_link.position.x();
+    ros_world2base_link.position.y = world2base_link.position.y();
+    ros_world2base_link.position.z = world2base_link.position.z();
+    ros_world2base_link.orientation.x = world2base_link.quat.x();
+    ros_world2base_link.orientation.y = world2base_link.quat.y();
+    ros_world2base_link.orientation.z = world2base_link.quat.z();
+    ros_world2base_link.orientation.w = world2base_link.quat.w();
+    tf2::fromMsg(ros_world2base_link, tf_world2base_link);
   }
-  tf_map2odom = tf_map2base_link * tf_odom2base_link.inverse();
-  geometry_msgs::TransformStamped ros_map2odom;
-  ros_map2odom.header.frame_id = "map";
-  ros_map2odom.child_frame_id = "odom";
-  ros_map2odom.header.stamp = current_time;
-  ros_map2odom.transform = tf2::toMsg(tf_map2odom);
-  tf_broadcaster_.sendTransform(ros_map2odom);
-#endif
+  tf_map2base_link = tf_world2map.inverse() * tf_world2base_link;
+  geometry_msgs::TransformStamped ros_map2base_link;
+  ros_map2base_link.header.frame_id = "map";
+  ros_map2base_link.child_frame_id = "base_link";
+  ros_map2base_link.header.stamp = current_time;
+  ros_map2base_link.transform = tf2::toMsg(tf_map2base_link);
+  //  tf_broadcaster_.sendTransform(ros_map2base_link);
+
+  // current pose
+  geometry_msgs::PoseStamped output_current_pose_msg;
+  output_current_pose_msg.header.frame_id = "map";
+  output_current_pose_msg.header.stamp = current_time;
+  output_current_pose_msg.pose.position.x = ros_map2base_link.transform.translation.x;
+  output_current_pose_msg.pose.position.y = ros_map2base_link.transform.translation.y;
+  output_current_pose_msg.pose.position.z = ros_map2base_link.transform.translation.z;
+  output_current_pose_msg.pose.orientation = ros_map2base_link.transform.rotation;
+  current_pose_pub_.publish(output_current_pose_msg);
 }
 
 } // namespace amcl_3d

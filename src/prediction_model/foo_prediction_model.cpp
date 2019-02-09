@@ -19,9 +19,9 @@ bool FooPredictionModel::predict(State &state, const double dt_sec)
     Position local_position;
     Quat local_quat;
     std::normal_distribution<double> vel_scale_noise(1.0, 1.0),
-        vel_bias_noise(0.0, 1.0),
+        vel_bias_noise(0.0, 0.2),
         omega_scale_noise(1.0, 0.5),
-        omega_bias_noise(0.0, 0.5);
+        omega_bias_noise(0.0, 0.1);
     double vel = vel_.x() * vel_scale_noise(rand_) + vel_bias_noise(rand_);
     double omega = omega_.z() * omega_scale_noise(rand_) + omega_bias_noise(rand_);
     const double r = vel / omega;
