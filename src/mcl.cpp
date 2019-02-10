@@ -102,9 +102,10 @@ bool Amcl::checkResample(const MeasurementState &measurement_state)
             std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ param_.augmented_mcl.noise_yaw_var);
         ParticleFilter::NoiseGenerators
             noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
-        // pf_ptr_->resample(pf_ptr_->getParticleNum(), 0.0, noise_gens); // random resample
-        // pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // random resample
-        pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
+        pf_ptr_->resample(pf_ptr_->getParticleNum()); // simple resample
+        // pf_ptr_->resample(pf_ptr_->getParticleNum(), 0.2, noise_gens); // random resample
+        // pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // augmented resample
+        // pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
     }
 }
 
@@ -119,9 +120,9 @@ bool Amcl::predict(std::shared_ptr<PredictionModelInterface> model, const Time &
     return true;
 }
 
-bool Amcl::predict(std::shared_ptr<Particles> particles_ptr, std::shared_ptr<PredictionModelInterface> model, const Time &time)
+bool Amcl::predict(std::shared_ptr<Particles> particles_ptr, std::shared_ptr<PredictionModelInterface> model, const Time &time, const bool update_time)
 {
-    pf_ptr_->predict(particles_ptr, model, time);
+    pf_ptr_->predict(particles_ptr, model, time, update_time);
     return true;
 }
 

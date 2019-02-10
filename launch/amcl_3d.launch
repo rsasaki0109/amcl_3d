@@ -27,8 +27,8 @@
   <arg name="input_imu" default="/imu/data" />
   <arg name="input_initialpose" default="/initialpose" />
   <arg name="input_pc2" default="/cloud" />
-  <arg name="input_ndt_pose" default="/gazebo_vehicle/pose" />
-  <!-- <arg name="input_ndt_pose" default="/ndt_pose" /> -->
+  <!-- <arg name="input_ndt_pose" default="/gazebo_vehicle/pose" /> -->
+  <arg name="input_ndt_pose" default="/ndt_pose" />
 
   <node pkg="amcl_3d" name="amcl_3d_node" type="amcl_3d_node" output="screen" >
     <param name="amcl_param/augmented_mcl/alpha_fast" value="$(arg amcl_param/augmented_mcl/alpha_fast)" />

@@ -47,35 +47,22 @@ bool ParticleFilter::init(const Position &position, const Quat &quat, const Nois
 
 bool ParticleFilter::resample(const size_t particle_num)
 {
-    double weight_interval;
-    {
-        double weight_sum = 0.0;
-        for (const auto &particle : *particles_ptr_)
-        {
-            weight_sum += particle.weight;
-        }
-        weight_interval = weight_sum / (double)particle_num;
-    }
     std::shared_ptr<Particles> new_particles_ptr = std::make_shared<Particles>();
-    Particles::iterator particle_itr = particles_ptr_->begin();
-    double weight_sum = 0.0;
-    double weight_interval_sum = 0.0;
-    for (size_t i = 0; i < particle_num; ++i)
-    {
-        weight_interval_sum += weight_interval;
-        while (weight_interval_sum - (weight_interval / 2.0) >= weight_sum)
-        {
-            if (particle_itr == particles_ptr_->end())
-                break;
-            weight_sum += particle_itr->weight;
-            ++particle_itr;
-        }
-        State new_state = *(particle_itr - 1);
-        // Initialize weight
-        new_state.weight = 1.0;
-
-        new_particles_ptr->push_back(new_state);
-    }
+    std::shared_ptr<ResampleNoiseInterface> x_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> y_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> z_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> roll_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> pitch_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> yaw_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    ParticleFilter::NoiseGenerators
+        noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
+    resample(new_particles_ptr, particle_num, 0.0, noise_gens);
     particles_ptr_ = new_particles_ptr;
     normalizeWeight(particles_ptr_);
 

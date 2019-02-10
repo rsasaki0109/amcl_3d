@@ -14,17 +14,23 @@ class Amcl
 {
 public:
   Amcl();
-  Amcl(const AmclParam& param);
+  Amcl(const AmclParam &param);
   ~Amcl(){};
-  bool setParam(const AmclParam& param);
+  bool setParam(const AmclParam &param);
   AmclParam getParam();
   bool setMap(const pcl::PointCloud<pcl::PointXYZ>::Ptr map);
   bool getParticles(std::shared_ptr<const Particles> &particles_ptr);
   bool measureLidar(const Time &time, const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement);
-  bool measureNdtPose(std::shared_ptr<const Particles> particles_ptr, const Position &position, const Quat &quat, const PoseCovariance &covariance);
+  bool measureNdtPose(std::shared_ptr<const Particles> particles_ptr,
+                      const Position &position,
+                      const Quat &quat,
+                      const PoseCovariance &covariance);
   bool predict(std::shared_ptr<PredictionModelInterface> model);
   bool predict(std::shared_ptr<PredictionModelInterface> model, const Time &time);
-  bool predict(std::shared_ptr<Particles> particles_ptr, std::shared_ptr<PredictionModelInterface> model, const Time &time);
+  bool predict(std::shared_ptr<Particles> particles_ptr,
+               std::shared_ptr<PredictionModelInterface> model,
+               const Time &time,
+               const bool update_time = true);
   bool setInitialPose(const Position &position, const Quat &quat, const PoseCovariance &covariance);
   bool setInitialPose(const Position &position, const Quat &quat, const PoseCovariance &covariance, const size_t particle_num);
   State getMMSE();

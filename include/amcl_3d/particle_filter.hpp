@@ -3,6 +3,7 @@
 #include "amcl_3d/type.hpp"
 #include "amcl_3d/time.hpp"
 #include "amcl_3d/resample_noise/resample_noise_interface.hpp"
+#include "amcl_3d/resample_noise/normal_distribution.hpp"
 #include "amcl_3d/prediction_model/prediction_model_interface.hpp"
 #include "amcl_3d/measurement_model/measurement_model_interface.hpp"
 #include "amcl_3d/xorshift128.hpp"

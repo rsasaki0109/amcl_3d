@@ -147,7 +147,10 @@ void Amcl3dNode::ndtPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &inp
   std::shared_ptr<const Particles> particles_ptr;
   amcl_->getParticles(particles_ptr);
   std::shared_ptr<Particles> copied_particles_ptr(new Particles(*particles_ptr)); // for time back
-  amcl_->predict(copied_particles_ptr, prediction_model_node_->getPredictionModel(), Time::fromROSTime(input_ndt_pose_msg->header.stamp));
+  amcl_->predict(copied_particles_ptr,
+                 prediction_model_node_->getPredictionModel(),
+                 Time::fromROSTime(input_ndt_pose_msg->header.stamp),
+                 false);
 
   // transform map data to world frame id coordinate
   geometry_msgs::PoseStamped::Ptr ndt_pose(new geometry_msgs::PoseStamped(*input_ndt_pose_msg));
@@ -178,20 +181,13 @@ void Amcl3dNode::ndtPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &inp
   const geometry_msgs::Quaternion &ros_quat = ndt_pose->pose.orientation;
   Position position(ros_position.x, ros_position.y, ros_position.z);
   Quat quat(ros_quat.w, ros_quat.x, ros_quat.y, ros_quat.z);
-  PoseCovariance covariance;
+  PoseCovariance covariance = PoseCovariance::Zero();
   covariance(/*x*/ 0, /*x*/ 0) = 1.0;         // x var
   covariance(/*y*/ 1, /*y*/ 1) = 1.0;         // y var
   covariance(/*z*/ 2, /*z*/ 2) = 1.0;         // z var
   covariance(/*roll*/ 3, /*roll*/ 3) = 0.5;   // roll var
   covariance(/*pitch*/ 4, /*pitch*/ 4) = 0.1; // pitch var
   covariance(/*yaw*/ 5, /*yaw*/ 5) = 0.5;     // yaw var
-  // std::cout << position.x() << ", "
-  //           << position.y() << ", "
-  //           << position.z() << ", "
-  //           << quat.x() << ", "
-  //           << quat.y() << ", "
-  //           << quat.z() << ", "
-  //           << quat.w() << std::endl;
 
   amcl_->measureNdtPose(copied_particles_ptr, position, quat, covariance);
 }
@@ -206,7 +202,7 @@ void Amcl3dNode::initialPoseCallback(const geometry_msgs::PoseWithCovarianceStam
   Position position(ros_position.x, ros_position.y, ros_position.z);
   Quat quat(ros_quat.w, ros_quat.x, ros_quat.y, ros_quat.z);
 
-  PoseCovariance covariance;
+  PoseCovariance covariance = PoseCovariance::Zero();
   covariance(/*x*/ 0, /*x*/ 0) = ros_covariance.at(/*x*/ 0 * 6 + 0);             // x var
   covariance(/*y*/ 1, /*y*/ 1) = ros_covariance.at(/*y*/ 1 * 6 + 1);             // y var
   covariance(/*z*/ 2, /*z*/ 2) = ros_covariance.at(/*z*/ 2 * 6 + 2);             // z var
