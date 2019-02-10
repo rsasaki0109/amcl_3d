@@ -63,7 +63,7 @@ bool ParticleFilter::resample(const size_t particle_num)
     for (size_t i = 0; i < particle_num; ++i)
     {
         weight_interval_sum += weight_interval;
-        while (weight_interval_sum >= weight_sum)
+        while (weight_interval_sum - (weight_interval / 2.0) >= weight_sum)
         {
             if (particle_itr == particles_ptr_->end())
                 break;
@@ -231,7 +231,7 @@ bool ParticleFilter::resample(std::shared_ptr<Particles> new_particles_ptr, cons
     for (size_t i = 0; i < resample_particle_num; ++i)
     {
         weight_interval_sum += weight_interval;
-        while (weight_interval_sum >= weight_sum)
+        while (weight_interval_sum - (weight_interval / 2.0) >= weight_sum)
         {
             if (particle_itr == particles_ptr_->end())
                 break;
@@ -248,7 +248,7 @@ bool ParticleFilter::resample(std::shared_ptr<Particles> new_particles_ptr, cons
     for (size_t i = new_particles_ptr->size(); i < particle_num; ++i)
     {
         weight_interval_sum += weight_interval;
-        while (weight_interval_sum >= weight_sum)
+        while (weight_interval_sum - (weight_interval / 2.0) >= weight_sum)
         {
             if (particle_itr == particles_ptr_->end())
                 break;
