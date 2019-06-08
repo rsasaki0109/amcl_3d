@@ -2,7 +2,7 @@
 // #include <iostream>
 namespace amcl_3d
 {
-ParticleFilter::ParticleFilter() {}
+ParticleFilter::ParticleFilter() : particles_ptr_(std::make_shared<Particles>()) {}
 
 bool ParticleFilter::init(const Position &position, const Quat &quat, const NoiseGenerators &noise_gen, const size_t particle_num)
 {
@@ -29,9 +29,9 @@ bool ParticleFilter::init(const Position &position, const Quat &quat, const Nois
             //                  * Eigen::AngleAxisd(pitch + noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
             //                  * Eigen::AngleAxisd(yaw + noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
             // noised_state.quat = noised_quat;
-            Quat noise_quat(Eigen::AngleAxisd(noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())     // roll
-                             * Eigen::AngleAxisd(noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
-                             * Eigen::AngleAxisd(noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ()));   // yaw
+            Quat noise_quat(Eigen::AngleAxisd(noise_gen.roll->getNoise(rand_), Eigen::Vector3d::UnitX())    // roll
+                            * Eigen::AngleAxisd(noise_gen.pitch->getNoise(rand_), Eigen::Vector3d::UnitY()) // pitch
+                            * Eigen::AngleAxisd(noise_gen.yaw->getNoise(rand_), Eigen::Vector3d::UnitZ())); // yaw
             noised_state.quat = noise_quat * quat;
         }
         // Initialize weight
@@ -40,40 +40,29 @@ bool ParticleFilter::init(const Position &position, const Quat &quat, const Nois
         particles_ptr_->push_back(noised_state);
     }
     normalizeWeight(particles_ptr_);
+
+    last_prediction_time_ = Time::getTimeNow();
     return true;
 }
 
 bool ParticleFilter::resample(const size_t particle_num)
 {
-    double weight_interval;
-    {
-        double weight_sum = 0.0;
-        for (const auto &particle : *particles_ptr_)
-        {
-            weight_sum += particle.weight;
-        }
-        weight_interval = weight_sum / (double)particle_num;
-    }
     std::shared_ptr<Particles> new_particles_ptr = std::make_shared<Particles>();
-    Particles::iterator particle_itr = particles_ptr_->begin();
-    double weight_sum = 0.0;
-    double weight_interval_sum = 0.0;
-    for (size_t i = 0; i < particle_num; ++i)
-    {
-        weight_interval_sum += weight_interval;
-        while (weight_interval_sum >= weight_sum)
-        {
-            if (particle_itr == particles_ptr_->end())
-                break;
-            weight_sum += particle_itr->weight;
-            ++particle_itr;
-        }
-        State new_state = *(particle_itr - 1);
-        // Initialize weight
-        new_state.weight = 1.0;
-
-        new_particles_ptr->push_back(new_state);
-    }
+    std::shared_ptr<ResampleNoiseInterface> x_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> y_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> z_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> roll_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> pitch_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    std::shared_ptr<ResampleNoiseInterface> yaw_noise_ptr =
+        std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ 0.0);
+    ParticleFilter::NoiseGenerators
+        noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
+    resample(new_particles_ptr, particle_num, 0.0, noise_gens);
     particles_ptr_ = new_particles_ptr;
     normalizeWeight(particles_ptr_);
 
@@ -229,7 +218,7 @@ bool ParticleFilter::resample(std::shared_ptr<Particles> new_particles_ptr, cons
     for (size_t i = 0; i < resample_particle_num; ++i)
     {
         weight_interval_sum += weight_interval;
-        while (weight_interval_sum >= weight_sum)
+        while (weight_interval_sum - (weight_interval / 2.0) >= weight_sum)
         {
             if (particle_itr == particles_ptr_->end())
                 break;
@@ -246,7 +235,7 @@ bool ParticleFilter::resample(std::shared_ptr<Particles> new_particles_ptr, cons
     for (size_t i = new_particles_ptr->size(); i < particle_num; ++i)
     {
         weight_interval_sum += weight_interval;
-        while (weight_interval_sum >= weight_sum)
+        while (weight_interval_sum - (weight_interval / 2.0) >= weight_sum)
         {
             if (particle_itr == particles_ptr_->end())
                 break;
@@ -293,10 +282,37 @@ State ParticleFilter::getMMSE()
     mmse_state.weight = weight_sum;
     for (const auto &particle : *particles_ptr_)
     {
-        mmse_state.position.x() = particle.position.x() * (particle.weight / weight_sum);
-        mmse_state.position.y() = particle.position.y() * (particle.weight / weight_sum);
-        mmse_state.position.z() = particle.position.z() * (particle.weight / weight_sum);
+        mmse_state.position.x() += particle.position.x() * (particle.weight / weight_sum);
+        mmse_state.position.y() += particle.position.y() * (particle.weight / weight_sum);
+        mmse_state.position.z() += particle.position.z() * (particle.weight / weight_sum);
     }
+
+    Eigen::Vector2d vec_roll, vec_pitch, vec_yaw;
+    vec_roll.x() = 0.0;
+    vec_roll.y() = 0.0;
+    vec_pitch.x() = 0.0;
+    vec_pitch.y() = 0.0;
+    vec_yaw.x() = 0.0;
+    vec_yaw.y() = 0.0;
+    for (const auto &particle : *particles_ptr_)
+    {
+        Euler euler = particle.quat.toRotationMatrix().eulerAngles(0, 1, 2);
+        vec_roll.x() += std::cos(euler[0]) * particle.weight / weight_sum;
+        vec_roll.y() += std::sin(euler[0]) * particle.weight / weight_sum;
+        vec_pitch.x() += std::cos(euler[1]) * particle.weight / weight_sum;
+        vec_pitch.y() += std::sin(euler[1]) * particle.weight / weight_sum;
+        vec_yaw.x() += std::cos(euler[2]) * particle.weight / weight_sum;
+        vec_yaw.y() += std::sin(euler[2]) * particle.weight / weight_sum;
+    }
+    double roll, pitch, yaw;
+    roll = std::atan2(vec_roll.y(), vec_roll.x());
+    pitch = std::atan2(vec_pitch.y(), vec_pitch.x());
+    yaw = std::atan2(vec_yaw.y(), vec_yaw.x());
+
+    mmse_state.quat = Quat(Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())    // roll
+                           * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) // pitch
+                           * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ())); // yaw
+
     return mmse_state;
 }
 
@@ -314,24 +330,31 @@ State ParticleFilter::getMAP()
     }
     return map_state;
 }
-bool ParticleFilter::predict(std::shared_ptr<PredictionModelInterface> model)
+bool ParticleFilter::predict(std::shared_ptr<PredictionModelInterface> model, const Time &time)
 {
-    bool rising_edge = true;
-    bool falling_edge = false;
-    for (size_t i = 0; i < particles_ptr_->size(); ++i)
+    return predict(particles_ptr_, model, time);
+}
+
+bool ParticleFilter::predict(std::shared_ptr<Particles> particles_ptr, std::shared_ptr<PredictionModelInterface> model, const Time &time, bool update_time)
+{
+    double dt_sec = Time::getDiff(last_prediction_time_, time);
+    for (size_t i = 0; i < particles_ptr->size(); ++i)
     {
-        if (i == particles_ptr_->size() - 1)
-            falling_edge = true;
-        model->predict(particles_ptr_->at(i), rising_edge, falling_edge);
-        rising_edge = false;
+        model->predict(particles_ptr->at(i), dt_sec);
     }
+    if (update_time)
+        last_prediction_time_ = time;
     return true;
 }
 
 bool ParticleFilter::measure(std::shared_ptr<MeasurementModelInterface> model, MeasurementState &measuremnt_state)
 {
-    model->measure(particles_ptr_, measuremnt_state);
-    return true;
+    return measure(particles_ptr_, model, measuremnt_state);
+}
+
+bool ParticleFilter::measure(std::shared_ptr<const Particles> measurement_point_particles_ptr, std::shared_ptr<MeasurementModelInterface> model, MeasurementState &measuremnt_state)
+{
+    return model->measure(measurement_point_particles_ptr, particles_ptr_, measuremnt_state);
 }
 
 bool ParticleFilter::getParticles(std::shared_ptr<const Particles> &particles_ptr)

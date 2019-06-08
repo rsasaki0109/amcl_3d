@@ -1,3 +1,4 @@
+#pragma once
 #include "amcl_3d/resample_noise/resample_noise_interface.hpp"
 #include <random>
 

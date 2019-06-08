@@ -7,10 +7,10 @@
   <arg name="amcl_param/augmented_mcl/noise_y_var" default="1.0" />
   <arg name="amcl_param/augmented_mcl/noise_z_var" default="0.2" />
   <arg name="amcl_param/augmented_mcl/noise_roll_var" default="0.1" />
-  <arg name="amcl_param/augmented_mcl/noise_pitch_var" default="0.3" />
-  <arg name="amcl_param/augmented_mcl/noise_yaw_var" default="1.0" />
+  <arg name="amcl_param/augmented_mcl/noise_pitch_var" default="0.1" />
+  <arg name="amcl_param/augmented_mcl/noise_yaw_var" default="0.1" />
   <arg name="amcl_param/init_pose/initial_particle_num" default="100" />
-  <arg name="amcl_param/resample_timing/ess_ratio_threshold" default="0.95" />
+  <arg name="amcl_param/resample_timing/ess_ratio_threshold" default="0.70" />
   <arg name="amcl_param/kld_sampling/min_particle_num" default="100" />
   <arg name="amcl_param/kld_sampling/max_particle_num" default="2000" />
   <arg name="amcl_param/kld_sampling/delta" default="0.5" />
@@ -23,10 +23,12 @@
   <arg name="odom_frame_id" default="odom" />
   <arg name="publish_rate" default="10" />
   <arg name="input_map" default="/mapcloud" />
-  <arg name="input_odom" default="/odom" />
+  <arg name="input_odom" default="/vehicle/odom" />
   <arg name="input_imu" default="/imu/data" />
   <arg name="input_initialpose" default="/initialpose" />
   <arg name="input_pc2" default="/cloud" />
+  <!-- <arg name="input_ndt_pose" default="/gazebo_vehicle/pose" /> -->
+  <arg name="input_ndt_pose" default="/ndt_pose" />
 
   <node pkg="amcl_3d" name="amcl_3d_node" type="amcl_3d_node" output="screen" >
     <param name="amcl_param/augmented_mcl/alpha_fast" value="$(arg amcl_param/augmented_mcl/alpha_fast)" />
@@ -57,5 +59,6 @@
     <remap from="imu" to="$(arg input_imu)"/>
     <remap from="initialpose" to="$(arg input_initialpose)"/>
     <remap from="pc2" to="$(arg input_pc2)"/>
+    <remap from="ndt_pose" to="$(arg input_ndt_pose)"/>
   </node>
 </launch>

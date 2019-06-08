@@ -17,14 +17,16 @@ LidarMeasurementModel::LidarMeasurementModel(pcl::KdTreeFLANN<pcl::PointXYZ>::Pt
     updateRandomSampleIndexVec(random_sample_num);
 }
 
-bool LidarMeasurementModel::measure(std::shared_ptr<Particles> particles_ptr, MeasurementState &measurement_state)
+bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_point_particles_ptr,
+                                    std::shared_ptr<Particles> particles_ptr,
+                                    MeasurementState &measurement_state)
 {
     // calc log likelihood each particlle
     std::vector<double> v_log_likelihood;
     v_log_likelihood.reserve(particles_ptr->size());
     const double max_squared_dist = max_dist_ * max_dist_; // [m^2]
     const double denominator = 2 * sigma_ * sigma_;
-    for (const auto &state : *particles_ptr)
+    for (const auto &state : *mesurement_point_particles_ptr)
     {
         /*
          * likelihood = exp(-(x-mu)^2/(2*sigma^2)), x is variable, mu is avg

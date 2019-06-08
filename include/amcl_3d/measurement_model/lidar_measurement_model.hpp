@@ -14,7 +14,9 @@ public:
                         const size_t random_sample_num,
                         /* max limit[m] to calc likelihood */ const double max_dist,
                         /* sigma[m] to calc likelihood */ const double sigma);
-  bool measure(std::shared_ptr<Particles> particles_ptr, MeasurementState &measuremnt_state) override;
+  bool measure(std::shared_ptr<const Particles> mesurement_point_particles_ptr,
+               std::shared_ptr<Particles> particles_ptr,
+               MeasurementState &measurement_state) override;
   void setKdMap(pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kd_map_ptr);
   void setMeasuement(pcl::PointCloud<pcl::PointXYZ>::Ptr measurement_ptr);
   bool isKdMap();
