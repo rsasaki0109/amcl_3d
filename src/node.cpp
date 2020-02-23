@@ -326,29 +326,31 @@ void Amcl3dNode::publishTimerCallback(const ros::TimerEvent &e)
     return;
   }
   State world2base_link = amcl_->getMMSE();
-    geometry_msgs::Pose ros_world2base_link;
-    ros_world2base_link.position.x = world2base_link.position.x();
-    ros_world2base_link.position.y = world2base_link.position.y();
-    ros_world2base_link.position.z = world2base_link.position.z();
-    ros_world2base_link.orientation.x = world2base_link.quat.x();
-    ros_world2base_link.orientation.y = world2base_link.quat.y();
-    ros_world2base_link.orientation.z = world2base_link.quat.z();
-    ros_world2base_link.orientation.w = world2base_link.quat.w();
-    tf2::fromMsg(ros_world2base_link, tf_world2base_link);
+    geometry_msgs::TransformStamped ros_world2base_link;
+    ros_world2base_link.header.frame_id = world_frame_id_;
+    ros_world2base_link.child_frame_id = base_link_frame_id_;
+    ros_world2base_link.header.stamp = current_time;
+    ros_world2base_link.transform.translation.x = world2base_link.position.x();
+    ros_world2base_link.transform.translation.y = world2base_link.position.y();
+    ros_world2base_link.transform.translation.z = world2base_link.position.z();
+    ros_world2base_link.transform.rotation.x = world2base_link.quat.x();
+    ros_world2base_link.transform.rotation.y = world2base_link.quat.y();
+    ros_world2base_link.transform.rotation.z = world2base_link.quat.z();
+    ros_world2base_link.transform.rotation.w = world2base_link.quat.w();
 
-  tf_map2odom = tf_world2map.inverse() * tf_world2base_link * tf_odom2base_link.inverse();
-  geometry_msgs::TransformStamped ros_map2odom;
-  ros_map2odom.header.frame_id = map_frame_id_;
-  ros_map2odom.child_frame_id = odom_frame_id_;
-  ros_map2odom.header.stamp = current_time;
-  ros_map2odom.transform = tf2::toMsg(tf_map2odom);
-  tf_broadcaster_.sendTransform(ros_map2odom);
+    tf_broadcaster_.sendTransform(ros_world2base_link); 
 
   // current pose
   geometry_msgs::PoseStamped output_current_pose_msg;
   output_current_pose_msg.header.frame_id = world_frame_id_;
   output_current_pose_msg.header.stamp = current_time;
-  output_current_pose_msg.pose = ros_world2base_link;
+  output_current_pose_msg.pose.position.x = world2base_link.position.x();
+  output_current_pose_msg.pose.position.y = world2base_link.position.y();
+  output_current_pose_msg.pose.position.z = world2base_link.position.z();
+  output_current_pose_msg.pose.orientation.x = world2base_link.quat.x();
+  output_current_pose_msg.pose.orientation.y = world2base_link.quat.y();
+  output_current_pose_msg.pose.orientation.z = world2base_link.quat.z();
+  output_current_pose_msg.pose.orientation.w = world2base_link.quat.w();
   current_pose_pub_.publish(output_current_pose_msg);
 }
 

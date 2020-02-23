@@ -28,7 +28,7 @@
   <arg name="odom_frame_id" default="odom" />
   <arg name="publish_rate" default="10" />
   <arg name="input_map" default="/mapcloud" />
-  <arg name="input_odom" default="/odoma" />
+  <arg name="input_odom" default="/odom" />
   <arg name="input_imu" default="/imu/data" />
   <arg name="input_initialpose" default="/initialpose" />
   <arg name="input_pc2" default="/cloud" />
