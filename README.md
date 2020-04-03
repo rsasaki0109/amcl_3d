@@ -1,30 +1,25 @@
 [![Build Status](https://travis-ci.com/yukkysaito/amcl_3d.svg?branch=master)](https://travis-ci.com/yukkysaito/amcl_3d)
 
-I develop this package every weekend.
-
-# Work in progress
-90%
+AMCL(Adaptive Monte Carlo Localization) in 3D for ROS.
 
 # Install Requirements
 
 ```
-$ git clone https://github.com/yukkysaito/amcl_3d.git <catkin_ws/src path>
+$ git clone  https://github.com/rsasaki0109/amcl_3d <catkin_ws/src path>
 $ rosdep install --from-paths <amcl_3d path> -y
 ```
 
-# TODO
-- add prediction model (particle filter)
+# Demo
 
-# Done
-- design interface (particle filter)
-- make ros package template
-- add basic resample function (particle filter)
-- add init function(particle filter)
-- build check (travis ci)
-- resampling timing based on ESS (effective sample size)
-- add simple likelihood model for lidar measurement (particle filter)
-- implement argumented mcl
-- implement kld sampling
+```
+wget https://openspur.org/~atsushi.w/dataset/mcl_3dl/short_test.bag
+```
+
+```
+roslaunch amcl_3d amcl_3d_rosbag.launch
+```
+
+![demo](./gif/demo.gif) 
 
 # Reference
 ## English Reference
