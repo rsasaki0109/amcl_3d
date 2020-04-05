@@ -26,6 +26,7 @@ bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_
     v_log_likelihood.reserve(particles_ptr->size());
     const double max_squared_dist = max_dist_ * max_dist_; // [m^2]
     const double denominator = 2 * sigma_ * sigma_;
+    const double distance_penelty = 0.2;
     for (const auto &state : *mesurement_point_particles_ptr)
     {
         /*
@@ -63,7 +64,7 @@ bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_
                 squared_dist = max_squared_dist;
             }
             // first step : log likelihood += -(x-mu)^2
-            log_likelihood += -1.0 * squared_dist;
+            log_likelihood += -1.0 * squared_dist * distance_penelty;
         }
         // second step : log likelihood *= 1.0/(2*sigma^2)
         log_likelihood /= denominator; // denominator = (2*sigma^2)

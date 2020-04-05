@@ -36,16 +36,16 @@ bool Amcl::getParticles(std::shared_ptr<const Particles> &particles_ptr)
 
 bool Amcl::measureLidar(const Time &time, const pcl::PointCloud<pcl::PointXYZ>::Ptr measuement)
 {
-#if 0
+#if 1
     if (kd_map_ptr_ == nullptr || measuement == nullptr)
         return false;
     MeasurementState measurement_state;
     const size_t random_sample_num = 100;
-    const double max_dist = 1.0;
+    const double max_dist = 0.2;
     const double sigma = 1.0;
     std::shared_ptr<MeasurementModelInterface> model =
         std::make_shared<LidarMeasurementModel>(kd_map_ptr_, measuement, random_sample_num, max_dist, sigma);
-    pf_ptr_->measure(model, time, measurement_state);
+    pf_ptr_->measure(model, measurement_state);
 
     checkResample(measurement_state);
 #endif
