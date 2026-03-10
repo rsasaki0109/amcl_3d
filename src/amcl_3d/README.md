@@ -16,9 +16,39 @@ source install/setup.bash
 
 ## Run
 
+`amcl_3d.launch.py` は低レベルの基本 launch で、既定ではノード内部名そのままのトピックを使います。
+
 ```bash
 ros2 launch amcl_3d amcl_3d.launch.py
 ```
+
+この場合の既定値は次です。
+
+- `map`
+- `odom`
+- `imu`
+- `initialpose`
+- `pc2`
+
+実運用では用途別 preset を使った方が楽です。
+
+### Vehicle Preset
+
+元の ROS1 launch に近い topic 構成向けです。
+
+```bash
+ros2 launch amcl_3d amcl_3d_vehicle.launch.py
+```
+
+この preset の既定値は次です。
+
+- `input_map:=/mapcloud`
+- `input_odom:=/vehicle/odom`
+- `input_imu:=/imu/data`
+- `input_initialpose:=/initialpose`
+- `input_pc2:=/cloud`
+
+### Custom Remap
 
 主要な入出力トピックは launch 引数で差し替えられます。
 
@@ -51,6 +81,14 @@ source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 ros2 launch amcl_3d amcl_3d_rosbag.launch.py bag_path:=/path/to/short_test_ros2
 ```
+
+この preset の topic 既定値は次です。
+
+- `input_map:=/mapcloud`
+- `input_odom:=/odom`
+- `input_imu:=/imu/data`
+- `input_initialpose:=/initialpose`
+- `input_pc2:=/cloud`
 
 主な引数は次の通りです。
 
