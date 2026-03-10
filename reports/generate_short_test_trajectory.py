@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import matplotlib
+from rosbags.highlevel import AnyReader
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -59,7 +60,43 @@ def parse_csv(csv_path: Path) -> list[PoseSample]:
     return samples
 
 
-def build_plot(samples: list[PoseSample], output_path: Path, title: str) -> None:
+def parse_pointcloud2_xy(points_msg: object) -> np.ndarray:
+    fields = {field.name: field for field in points_msg.fields}
+    if "x" not in fields or "y" not in fields:
+        raise ValueError("pointcloud must contain x and y fields")
+
+    endian_prefix = ">" if points_msg.is_bigendian else "<"
+    dtype = np.dtype(
+        {
+            "names": ["x", "y", "z"],
+            "formats": [f"{endian_prefix}f4", f"{endian_prefix}f4", f"{endian_prefix}f4"],
+            "offsets": [
+                fields["x"].offset,
+                fields["y"].offset,
+                fields.get("z", fields["y"]).offset if "z" in fields else fields["y"].offset,
+            ],
+            "itemsize": points_msg.point_step,
+        }
+    )
+    structured = np.frombuffer(bytes(points_msg.data), dtype=dtype, count=points_msg.width * points_msg.height)
+    points = np.column_stack((structured["x"], structured["y"], structured["z"]))
+    return points[np.isfinite(points).all(axis=1)]
+
+
+def load_map_points(bag_path: Path, topic: str) -> tuple[np.ndarray, str]:
+    with AnyReader([bag_path]) as reader:
+        target_connections = [connection for connection in reader.connections if connection.topic == topic]
+        if not target_connections:
+            raise ValueError(f"topic {topic} not found in {bag_path}")
+
+        for connection, _, rawdata in reader.messages(connections=target_connections):
+            msg = reader.deserialize(rawdata, connection.msgtype)
+            return parse_pointcloud2_xy(msg), msg.header.frame_id
+
+    raise ValueError(f"no messages found for topic {topic} in {bag_path}")
+
+
+def build_plot(samples: list[PoseSample], output_path: Path, title: str, map_points: np.ndarray | None = None) -> None:
     t = np.array([sample.stamp for sample in samples], dtype=float)
     x = np.array([sample.x for sample in samples], dtype=float)
     y = np.array([sample.y for sample in samples], dtype=float)
@@ -73,6 +110,20 @@ def build_plot(samples: list[PoseSample], output_path: Path, title: str) -> None
     fig.patch.set_facecolor("white")
     ax.set_facecolor("#f8fafc")
     ax.grid(True, color="#cbd5e1", linewidth=0.8, alpha=0.7)
+
+    if map_points is not None and len(map_points) > 0:
+        stride = max(1, len(map_points) // 18000)
+        map_xy = map_points[::stride, :2]
+        ax.scatter(
+            map_xy[:, 0],
+            map_xy[:, 1],
+            s=2.0,
+            color="#cbd5e1",
+            alpha=0.55,
+            linewidths=0,
+            label="mapcloud",
+            zorder=0,
+        )
 
     ax.plot(x, y, color="#94a3b8", linewidth=1.4, alpha=0.9, zorder=1)
     scatter = ax.scatter(
@@ -149,10 +200,17 @@ def main() -> int:
     parser.add_argument("input_csv", type=Path)
     parser.add_argument("output_png", type=Path)
     parser.add_argument("--title", default="amcl_3d ROS 2 trajectory")
+    parser.add_argument("--bag-path", type=Path, default=None, help="Optional rosbag2 directory used to overlay /mapcloud.")
+    parser.add_argument("--map-topic", default="/mapcloud")
     args = parser.parse_args()
 
     samples = parse_csv(args.input_csv)
-    build_plot(samples, args.output_png, args.title)
+    map_points = None
+    if args.bag_path is not None:
+        map_points, map_frame_id = load_map_points(args.bag_path, args.map_topic)
+        print(f"map_points={len(map_points)}")
+        print(f"map_frame_id={map_frame_id}")
+    build_plot(samples, args.output_png, args.title, map_points)
     return 0
 
 
