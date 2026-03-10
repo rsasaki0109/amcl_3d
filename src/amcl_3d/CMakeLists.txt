@@ -64,6 +64,11 @@ install(TARGETS amcl_3d_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  tools/convert_ros1_bag_to_ros2.sh
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 install(DIRECTORY include/
   DESTINATION include
 )
