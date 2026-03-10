@@ -1,3 +1,5 @@
 build/
 install/
 log/
+demo_data/
+__pycache__/

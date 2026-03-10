@@ -39,6 +39,10 @@ bool Amcl::measureLidar(const Time &time, const pcl::PointCloud<pcl::PointXYZ>::
 #if 1
     if (kd_map_ptr_ == nullptr || measuement == nullptr)
         return false;
+    std::shared_ptr<const Particles> particles_ptr;
+    pf_ptr_->getParticles(particles_ptr);
+    if (particles_ptr == nullptr || particles_ptr->empty())
+        return false;
     MeasurementState measurement_state;
     const size_t random_sample_num = 100;
     const double max_dist = 0.2;

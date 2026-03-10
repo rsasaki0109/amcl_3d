@@ -4,6 +4,8 @@
 
 ROS1版 `amcl_3d` を ROS 2 Jazzy 向けに移植した作業ツリーです。
 
+repo 直下の [../../reports/short_test_demo.md](../../reports/short_test_demo.md) に、`short_test_ros2` を使ったデモ軌跡レポートを置いています。
+
 ## Build
 
 ```bash
@@ -71,13 +73,15 @@ ros2 launch amcl_3d amcl_3d_rosbag.launch.py bag_path:=/path/to/short_test_ros2
 - `input_imu:=/imu/data`
 - `input_initialpose:=/initialpose`
 - `input_pc2:=/cloud`
+- `world_frame_id:=map`
+- `publish_world_to_static_tf:=false`
 
 主な引数は次の通りです。
 
 - `open_rviz:=false` で RViz を起動しません
 - `bag_rate:=0.5` で再生速度を変更できます
 - `bag_loop:=false` でループ再生を止めます
-- `publish_world_to_static_tf:=true` と `static_child_frame_id:=cad` で元デモ相当の static TF を出します
+- bag の frame 構成に追加で world 系 TF が必要なときだけ `publish_world_to_static_tf:=true` と `static_child_frame_id:=cad` を使います
 
 headless 環境で起動確認だけしたい場合はこうします。
 
