@@ -25,6 +25,12 @@ python3 reports/generate_short_test_trajectory.py \
   /tmp/short_test_current_pose_full.csv \
   reports/assets/short_test_trajectory.png \
   --title "amcl_3d ROS 2 trajectory (short_test_ros2)"
+
+python3 reports/generate_short_test_trajectory.py \
+  /tmp/short_test_current_pose_full.csv \
+  reports/assets/short_test_trajectory_on_map.png \
+  --bag-path ~/workspace/amcl_3d_ros2_ws/demo_data/short_test_ros2 \
+  --title "amcl_3d ROS 2 trajectory on mapcloud (short_test_ros2)"
 ```
 
 ## 結果
@@ -36,8 +42,14 @@ python3 reports/generate_short_test_trajectory.py \
 
 ![short_test trajectory](assets/short_test_trajectory.png)
 
+### 地図点群に重ねた軌跡
+
+`/mapcloud` の最初の `PointCloud2` を背景に重ねた版です。
+
+![short_test trajectory on mapcloud](assets/short_test_trajectory_on_map.png)
+
 ## メモ
 
 - 再生直後の数フレームは TF がまだ揃っておらず、`hokuyo3d_front` / `hokuyo3d_rear` に対する外挿警告が出ますが、その後 `received map` まで進み、`/current_pose` は継続して publish されます。
 - `demo_data/` 配下の bag はサイズが大きいので git には含めていません。
-- 画像は `reports/generate_short_test_trajectory.py` で CSV から再生成できます。
+- `reports/generate_short_test_trajectory.py` は `--bag-path` を渡すと `/mapcloud` を読んで背景に重ねます。
