@@ -344,6 +344,10 @@ bool ParticleFilter::predict(std::shared_ptr<Particles> particles_ptr, std::shar
         return true;
     }
     double dt_sec = Time::getDiff(last_prediction_time_, time);
+    if (dt_sec <= 0.0)
+    {
+        return true;
+    }
     for (size_t i = 0; i < particles_ptr->size(); ++i)
     {
         model->predict(particles_ptr->at(i), dt_sec);

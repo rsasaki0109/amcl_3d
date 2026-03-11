@@ -4,18 +4,6 @@
 
 namespace amcl_3d
 {
-namespace
-{
-Time messageTimeOrNow(const builtin_interfaces::msg::Time & stamp, const rclcpp::Node & node)
-{
-    if (stamp.sec == 0 && stamp.nanosec == 0)
-    {
-        return Time::fromRclcppTime(node.get_clock()->now());
-    }
-    return Time::fromROSTime(stamp);
-}
-} // namespace
-
 FooPredictionModelNode::FooPredictionModelNode(rclcpp::Node & node, std::shared_ptr<Amcl> amcl)
     : node_(node), amcl_(std::move(amcl))
 {
@@ -49,7 +37,7 @@ void FooPredictionModelNode::odomCallback(const nav_msgs::msg::Odometry::ConstSh
     omega = 0.5 * (omega + prediction_model_->getAngularVelocity());
     prediction_model_->measumentLinearVelocity(vel);
     prediction_model_->measumentAngularVelocity(omega);
-    amcl_->predict(prediction_model_, messageTimeOrNow(input_odom_msg->header.stamp, node_));
+    amcl_->predict(prediction_model_, Time::fromRclcppTime(node_.get_clock()->now()));
 }
 
 void FooPredictionModelNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr input_imu_msg)

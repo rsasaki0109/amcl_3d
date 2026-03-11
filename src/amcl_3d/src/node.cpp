@@ -270,7 +270,7 @@ void Amcl3dNode::pc2Callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
 {
   auto ros_pc2 = input_pc2_msg;
   const Time measurement_time = stampOrNow(ros_pc2->header.stamp, *this);
-  amcl_->predict(prediction_model_node_->getPredictionModel(), measurement_time);
+  amcl_->predict(prediction_model_node_->getPredictionModel(), Time::fromRclcppTime(this->get_clock()->now()));
 
   const std::string source_frame_id = sanitizeFrameId(ros_pc2->header.frame_id);
   if (source_frame_id != base_link_frame_id_)
