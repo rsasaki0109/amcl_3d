@@ -21,6 +21,13 @@ bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_
                                     std::shared_ptr<Particles> particles_ptr,
                                     MeasurementState &measurement_state)
 {
+    if (mesurement_point_particles_ptr == nullptr || particles_ptr == nullptr ||
+        kd_map_ptr_ == nullptr || measurement_ptr_ == nullptr ||
+        mesurement_point_particles_ptr->empty() || particles_ptr->empty() || measurement_ptr_->empty())
+    {
+        return false;
+    }
+
     // calc log likelihood each particlle
     std::vector<double> v_log_likelihood;
     v_log_likelihood.reserve(particles_ptr->size());
@@ -80,6 +87,11 @@ bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_
     }
     // calc weight and avoid numerical underflow
     // http://www.maths.lu.se/fileadmin/maths/forskning_research/InferPartObsProcess/particlemethods.pdf
+    if (v_log_likelihood.empty())
+    {
+        return false;
+    }
+
     double max_log_likelihood = *std::max_element(v_log_likelihood.begin(), v_log_likelihood.end());
     for (size_t i = 0; i < particles_ptr->size(); ++i)
     {
@@ -102,6 +114,10 @@ void LidarMeasurementModel::updateRandomSampleIndexVec(const size_t random_sampl
     const size_t limited_random_sample_num = std::min(random_sample_num, measurement_ptr_->size());
     v_random_sample_index_.clear();
     v_random_sample_index_.reserve(limited_random_sample_num);
+    if (limited_random_sample_num == 0)
+    {
+        return;
+    }
     std::uniform_int_distribution<int> engine(0, limited_random_sample_num - 1);
     // push measurement point index to vector for random sampling
     for (size_t i = 0; i < limited_random_sample_num; ++i)

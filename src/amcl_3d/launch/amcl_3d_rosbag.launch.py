@@ -42,7 +42,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("params_file", default_value=PathJoinSubstitution([package_share, "config", "amcl_3d.params.yaml"])),
             DeclareLaunchArgument("use_sim_time", default_value="true"),
-            DeclareLaunchArgument("world_frame_id", default_value="world"),
+            DeclareLaunchArgument("world_frame_id", default_value="map"),
             DeclareLaunchArgument("map_frame_id", default_value="map"),
             DeclareLaunchArgument("base_link_frame_id", default_value="base_link"),
             DeclareLaunchArgument("odom_frame_id", default_value="odom"),
@@ -60,7 +60,7 @@ def generate_launch_description():
             DeclareLaunchArgument("clock_publish_hz", default_value="100.0"),
             DeclareLaunchArgument("open_rviz", default_value="true"),
             DeclareLaunchArgument("rviz_config", default_value=rviz_config),
-            DeclareLaunchArgument("publish_world_to_static_tf", default_value="true"),
+            DeclareLaunchArgument("publish_world_to_static_tf", default_value="false"),
             DeclareLaunchArgument("static_child_frame_id", default_value="cad"),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(amcl_launch),

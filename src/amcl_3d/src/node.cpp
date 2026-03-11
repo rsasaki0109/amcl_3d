@@ -92,7 +92,7 @@ private:
 Amcl3dNode::Amcl3dNode() : rclcpp::Node("amcl_3d")
 {
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_, this, false);
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_, this, true);
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
   AmclParam amcl_param;
