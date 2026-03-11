@@ -16,28 +16,12 @@ jobs:
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-latest
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup ROS 2 Jazzy
-        uses: ros-tooling/setup-ros@v0.7
-        with:
-          required-ros-distributions: jazzy
-
-      - name: Install dependencies
-        run: |
-          set -euxo pipefail
-          source /opt/ros/jazzy/setup.bash
-          rosdep update
-          rosdep install --from-paths src --ignore-src -r -y
-
       - name: Build workspace
-        run: |
-          set -euxo pipefail
-          source /opt/ros/jazzy/setup.bash
-          colcon build --symlink-install
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          package-name: amcl_3d
+          target-ros2-distro: jazzy
+          import-token: ${{ secrets.GITHUB_TOKEN }}
+          skip-tests: true
+          coverage-result: false
