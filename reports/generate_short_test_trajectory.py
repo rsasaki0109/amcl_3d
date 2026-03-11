@@ -403,9 +403,9 @@ def build_comparison_plot(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate a trajectory plot from /current_pose CSV output.")
+    parser = argparse.ArgumentParser(description="Generate trajectory plots from /current_pose CSV output.")
     parser.add_argument("input_csv", type=Path)
-    parser.add_argument("output_png", type=Path)
+    parser.add_argument("--trajectory-output-png", type=Path, default=None)
     parser.add_argument("--title", default="amcl_3d ROS 2 trajectory")
     parser.add_argument("--bag-path", type=Path, default=None, help="Optional rosbag2 directory used to overlay /mapcloud.")
     parser.add_argument("--map-topic", default="/mapcloud")
@@ -414,13 +414,18 @@ def main() -> int:
     parser.add_argument("--compare-title", default="amcl_3d ROS 2 vs odom XY")
     args = parser.parse_args()
 
+    if args.trajectory_output_png is None and args.compare_odom_output_png is None:
+        raise ValueError("either --trajectory-output-png or --compare-odom-output-png must be set")
+
     samples = parse_csv(args.input_csv)
     map_points = None
     if args.bag_path is not None:
         map_points, map_frame_id = load_map_points(args.bag_path, args.map_topic)
         print(f"map_points={len(map_points)}")
         print(f"map_frame_id={map_frame_id}")
-    build_plot(samples, args.output_png, args.title, map_points)
+
+    if args.trajectory_output_png is not None:
+        build_plot(samples, args.trajectory_output_png, args.title, map_points)
 
     if args.compare_odom_output_png is not None:
         if args.bag_path is None:

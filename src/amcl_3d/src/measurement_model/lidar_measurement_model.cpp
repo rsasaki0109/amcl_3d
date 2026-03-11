@@ -47,8 +47,8 @@ bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_
             // transform particle coordinate
             Position point;
             point << measurement_ptr_->at(i).x, measurement_ptr_->at(i).y, measurement_ptr_->at(i).z;
-            point = state.position + point;
             point = state.quat * point;
+            point += state.position;
             const pcl::PointXYZ sample_point(point.x(), point.y(), point.z());
             // k nearest neighbor search
             constexpr int k = 1;

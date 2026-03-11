@@ -4,11 +4,10 @@
 
 ROS1 `amcl_3d` を ROS 2 Jazzy 向けに移植したワークスペースです。
 
-`short_test.bag` を rosbag2 に変換して流したデモ結果は下の mapcloud 重ね版で確認できます。
+`short_test.bag` を rosbag2 に変換して流した `odom` と AMCL の XY 比較結果は下です。
 
-![short_test trajectory on mapcloud](reports/assets/short_test_trajectory_on_map.png)
+![short_test amcl vs odom xy](reports/assets/short_test_amcl_vs_odom_xy.png)
 
 - パッケージの build / run 手順: [src/amcl_3d/README.md](src/amcl_3d/README.md)
 - デモ結果レポート: [reports/short_test_demo.md](reports/short_test_demo.md)
-- `odom` と AMCL の XY 比較図も [reports/short_test_demo.md](reports/short_test_demo.md) に追加しています
 - 元の ROS1 リポジトリ: https://github.com/rsasaki0109/amcl_3d
