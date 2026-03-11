@@ -1,0 +1,5 @@
+sudo: required
+dist: xenial
+script:
+  - bash ./test/travis_ros_kinetic_install.bash
+  - bash ./test/travis_amcl_3d_build.bash
