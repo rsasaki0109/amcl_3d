@@ -1,10 +1,8 @@
 # amcl_3d for ROS 2
 
-[![Jazzy CI](https://github.com/rsasaki0109/amcl_3d_ros2/actions/workflows/jazzy-ci.yml/badge.svg)](https://github.com/rsasaki0109/amcl_3d_ros2/actions/workflows/jazzy-ci.yml)
+[![Jazzy CI](https://github.com/rsasaki0109/amcl_3d/actions/workflows/jazzy-ci.yml/badge.svg)](https://github.com/rsasaki0109/amcl_3d/actions/workflows/jazzy-ci.yml)
 
 ROS1版 `amcl_3d` を ROS 2 Jazzy 向けに移植した作業ツリーです。
-
-repo 直下の [../../reports/short_test_demo.md](../../reports/short_test_demo.md) に、`short_test_ros2` を使ったデモ軌跡レポートを置いています。
 
 ## Build
 
