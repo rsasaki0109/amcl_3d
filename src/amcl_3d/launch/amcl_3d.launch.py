@@ -13,7 +13,6 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("params_file", default_value=default_params),
             DeclareLaunchArgument("use_sim_time", default_value="false"),
-            DeclareLaunchArgument("world_frame_id", default_value="world"),
             DeclareLaunchArgument("map_frame_id", default_value="map"),
             DeclareLaunchArgument("base_link_frame_id", default_value="base_link"),
             DeclareLaunchArgument("odom_frame_id", default_value="odom"),
@@ -32,7 +31,6 @@ def generate_launch_description():
                     LaunchConfiguration("params_file"),
                     {
                         "use_sim_time": LaunchConfiguration("use_sim_time"),
-                        "world_frame_id": LaunchConfiguration("world_frame_id"),
                         "map_frame_id": LaunchConfiguration("map_frame_id"),
                         "base_link_frame_id": LaunchConfiguration("base_link_frame_id"),
                         "odom_frame_id": LaunchConfiguration("odom_frame_id"),

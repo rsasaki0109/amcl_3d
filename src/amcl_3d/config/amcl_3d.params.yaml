@@ -1,6 +1,5 @@
 amcl_3d:
   ros__parameters:
-    world_frame_id: world
     map_frame_id: map
     base_link_frame_id: base_link
     odom_frame_id: odom

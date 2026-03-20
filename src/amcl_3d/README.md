@@ -2,7 +2,9 @@
 
 [![Jazzy CI](https://github.com/rsasaki0109/amcl_3d/actions/workflows/jazzy-ci.yml/badge.svg)](https://github.com/rsasaki0109/amcl_3d/actions/workflows/jazzy-ci.yml)
 
-ROS1版 `amcl_3d` を ROS 2 Jazzy 向けに移植した作業ツリーです。
+3D AMCL (Adaptive Monte Carlo Localization) ported from ROS 1 to ROS 2 Jazzy.
+
+See the top-level [README](../../README.md) for demo results.
 
 ## Build
 
@@ -16,13 +18,13 @@ source install/setup.bash
 
 ## Run
 
-`amcl_3d.launch.py` は低レベルの基本 launch で、既定ではノード内部名そのままのトピックを使います。
+`amcl_3d.launch.py` is the base launch file using internal topic names by default.
 
 ```bash
 ros2 launch amcl_3d amcl_3d.launch.py
 ```
 
-この場合の既定値は次です。
+Default topic names:
 
 - `map`
 - `odom`
@@ -32,7 +34,7 @@ ros2 launch amcl_3d amcl_3d.launch.py
 
 ### Custom Remap
 
-主要な入出力トピックは launch 引数で差し替えられます。
+Input topics can be remapped via launch arguments.
 
 ```bash
 ros2 launch amcl_3d amcl_3d.launch.py \
@@ -42,20 +44,20 @@ ros2 launch amcl_3d amcl_3d.launch.py \
   input_initialpose:=/initialpose
 ```
 
-パラメータの既定値は [config/amcl_3d.params.yaml](config/amcl_3d.params.yaml) にあります。
+Default parameters are in [config/amcl_3d.params.yaml](config/amcl_3d.params.yaml).
 
 ## Demo With Rosbag2
 
-元リポジトリのデモは ROS1 `.bag` 前提だったので、ROS2 側では rosbag2 を再生する launch を追加しています。
+A rosbag2 playback launch is provided for demos.
 
-ROS1 bag を持っている場合は先に rosbag2 へ変換します。
+Convert a ROS 1 bag first if needed:
 
 ```bash
 cd ~/workspace/amcl_3d_ros2_ws/src/amcl_3d
 ./tools/convert_ros1_bag_to_ros2.sh /path/to/short_test.bag /path/to/short_test_ros2
 ```
 
-その後、デモ launch を使います。
+Then run the demo launch:
 
 ```bash
 cd ~/workspace/amcl_3d_ros2_ws
@@ -64,24 +66,23 @@ source install/setup.bash
 ros2 launch amcl_3d amcl_3d_rosbag.launch.py bag_path:=/path/to/short_test_ros2
 ```
 
-このデモ launch の topic 既定値は次です。
+Default demo topic mappings:
 
 - `input_map:=/mapcloud`
 - `input_odom:=/odom`
 - `input_imu:=/imu/data`
 - `input_initialpose:=/initialpose`
 - `input_pc2:=/cloud`
-- `world_frame_id:=map`
-- `publish_world_to_static_tf:=false`
+- `publish_map_to_static_tf:=false`
 
-主な引数は次の通りです。
+Additional arguments:
 
-- `open_rviz:=false` で RViz を起動しません
-- `bag_rate:=0.5` で再生速度を変更できます
-- `bag_loop:=false` でループ再生を止めます
-- bag の frame 構成に追加で world 系 TF が必要なときだけ `publish_world_to_static_tf:=true` と `static_child_frame_id:=cad` を使います
+- `open_rviz:=false` to skip RViz
+- `bag_rate:=0.5` to change playback speed
+- `bag_loop:=false` to disable looping
+- Use `publish_map_to_static_tf:=true` and `static_child_frame_id:=cad` only when the bag frame tree needs an extra static TF under the map frame
 
-headless 環境で起動確認だけしたい場合はこうします。
+Headless smoke test:
 
 ```bash
 ros2 launch amcl_3d amcl_3d_rosbag.launch.py \
@@ -91,6 +92,6 @@ ros2 launch amcl_3d amcl_3d_rosbag.launch.py \
 
 ## Notes
 
-- この移植では `ament_cmake` / `rclcpp` / ROS 2 launch に置き換えています。
-- ROS2 用の `amcl_3d_rosbag.launch.py` を追加し、rosbag2 再生に寄せています。
-- `map -> odom` 推定ではなく、元実装どおり `world -> base_link` の推定姿勢を publish します。
+- Ported to `ament_cmake` / `rclcpp` / ROS 2 launch.
+- Added `amcl_3d_rosbag.launch.py` for rosbag2 playback.
+- Publishes `map -> odom` TF following the ROS nav convention (`odom -> base_link` is provided by the odometry source).

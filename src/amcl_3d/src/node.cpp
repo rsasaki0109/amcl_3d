@@ -82,7 +82,6 @@ private:
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   std::shared_ptr<Amcl> amcl_;
-  std::string world_frame_id_;
   std::string map_frame_id_;
   std::string base_link_frame_id_;
   std::string odom_frame_id_;
@@ -135,7 +134,6 @@ Amcl3dNode::Amcl3dNode() : rclcpp::Node("amcl_3d")
   amcl_param.kld_sampling.z_bin_width =
       this->declare_parameter<double>("amcl_param.kld_sampling.z_bin_width", 0.2);
 
-  world_frame_id_ = this->declare_parameter<std::string>("world_frame_id", "world");
   map_frame_id_ = this->declare_parameter<std::string>("map_frame_id", "map");
   base_link_frame_id_ = this->declare_parameter<std::string>("base_link_frame_id", "base_link");
   odom_frame_id_ = this->declare_parameter<std::string>("odom_frame_id", "odom");
@@ -175,12 +173,12 @@ void Amcl3dNode::mapCallback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
 
   auto ros_map = input_map_msg;
   const std::string source_frame_id = sanitizeFrameId(ros_map->header.frame_id);
-  if (source_frame_id != world_frame_id_)
+  if (source_frame_id != map_frame_id_)
   {
     try
     {
       const auto transform_stamped = tf_buffer_->lookupTransform(
-          world_frame_id_,
+          map_frame_id_,
           source_frame_id,
           stampOrZero(ros_map->header.stamp, *this),
           rclcpp::Duration::from_seconds(0.2));
@@ -208,12 +206,12 @@ void Amcl3dNode::initialPoseCallback(
   geometry_msgs::msg::PoseWithCovarianceStamped init_transformed_pose = *input_init_pose_msg;
   const std::string source_frame_id = sanitizeFrameId(input_init_pose_msg->header.frame_id);
 
-  if (source_frame_id != world_frame_id_)
+  if (source_frame_id != map_frame_id_)
   {
     try
     {
       const auto transform_stamped = tf_buffer_->lookupTransform(
-          world_frame_id_,
+          map_frame_id_,
           source_frame_id,
           rclcpp::Time(0, 0, this->get_clock()->get_clock_type()),
           rclcpp::Duration::from_seconds(1.0));
@@ -224,7 +222,7 @@ void Amcl3dNode::initialPoseCallback(
       geometry_msgs::msg::PoseStamped transformed_pose;
       tf2::doTransform(raw_pose, transformed_pose, transform_stamped);
       init_transformed_pose.pose.pose = transformed_pose.pose;
-      init_transformed_pose.header.frame_id = world_frame_id_;
+      init_transformed_pose.header.frame_id = map_frame_id_;
     }
     catch (const tf2::TransformException & ex)
     {
@@ -305,7 +303,7 @@ void Amcl3dNode::publishTimerCallback()
 
   geometry_msgs::msg::PoseArray output_particle_msg;
   output_particle_msg.header.stamp = current_time;
-  output_particle_msg.header.frame_id = world_frame_id_;
+  output_particle_msg.header.frame_id = map_frame_id_;
 
   std::shared_ptr<const Particles> particles_ptr;
   amcl_->getParticles(particles_ptr);
@@ -323,30 +321,47 @@ void Amcl3dNode::publishTimerCallback()
   }
   pf_pub_->publish(output_particle_msg);
 
-  const State world2base_link = amcl_->getMMSE();
-  geometry_msgs::msg::TransformStamped ros_world2base_link;
-  ros_world2base_link.header.frame_id = world_frame_id_;
-  ros_world2base_link.child_frame_id = base_link_frame_id_;
-  ros_world2base_link.header.stamp = current_time;
-  ros_world2base_link.transform.translation.x = world2base_link.position.x();
-  ros_world2base_link.transform.translation.y = world2base_link.position.y();
-  ros_world2base_link.transform.translation.z = world2base_link.position.z();
-  ros_world2base_link.transform.rotation.x = world2base_link.quat.x();
-  ros_world2base_link.transform.rotation.y = world2base_link.quat.y();
-  ros_world2base_link.transform.rotation.z = world2base_link.quat.z();
-  ros_world2base_link.transform.rotation.w = world2base_link.quat.w();
-  tf_broadcaster_->sendTransform(ros_world2base_link);
+  const State map2base_link = amcl_->getMMSE();
+
+  // Compute map -> odom = map -> base_link * inverse(odom -> base_link)
+  try
+  {
+    const auto odom2base_link = tf_buffer_->lookupTransform(
+        odom_frame_id_, base_link_frame_id_, tf2::TimePointZero);
+
+    tf2::Transform tf_map2base_link;
+    tf_map2base_link.setOrigin(
+        tf2::Vector3(map2base_link.position.x(), map2base_link.position.y(), map2base_link.position.z()));
+    tf_map2base_link.setRotation(
+        tf2::Quaternion(map2base_link.quat.x(), map2base_link.quat.y(), map2base_link.quat.z(), map2base_link.quat.w()));
+
+    tf2::Transform tf_odom2base_link;
+    tf2::fromMsg(odom2base_link.transform, tf_odom2base_link);
+
+    const tf2::Transform tf_map2odom = tf_map2base_link * tf_odom2base_link.inverse();
+
+    geometry_msgs::msg::TransformStamped ros_map2odom;
+    ros_map2odom.header.frame_id = map_frame_id_;
+    ros_map2odom.child_frame_id = odom_frame_id_;
+    ros_map2odom.header.stamp = current_time;
+    ros_map2odom.transform = tf2::toMsg(tf_map2odom);
+    tf_broadcaster_->sendTransform(ros_map2odom);
+  }
+  catch (const tf2::TransformException & ex)
+  {
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "%s", ex.what());
+  }
 
   geometry_msgs::msg::PoseStamped output_current_pose_msg;
-  output_current_pose_msg.header.frame_id = world_frame_id_;
+  output_current_pose_msg.header.frame_id = map_frame_id_;
   output_current_pose_msg.header.stamp = current_time;
-  output_current_pose_msg.pose.position.x = world2base_link.position.x();
-  output_current_pose_msg.pose.position.y = world2base_link.position.y();
-  output_current_pose_msg.pose.position.z = world2base_link.position.z();
-  output_current_pose_msg.pose.orientation.x = world2base_link.quat.x();
-  output_current_pose_msg.pose.orientation.y = world2base_link.quat.y();
-  output_current_pose_msg.pose.orientation.z = world2base_link.quat.z();
-  output_current_pose_msg.pose.orientation.w = world2base_link.quat.w();
+  output_current_pose_msg.pose.position.x = map2base_link.position.x();
+  output_current_pose_msg.pose.position.y = map2base_link.position.y();
+  output_current_pose_msg.pose.position.z = map2base_link.position.z();
+  output_current_pose_msg.pose.orientation.x = map2base_link.quat.x();
+  output_current_pose_msg.pose.orientation.y = map2base_link.quat.y();
+  output_current_pose_msg.pose.orientation.z = map2base_link.quat.z();
+  output_current_pose_msg.pose.orientation.w = map2base_link.quat.w();
   current_pose_pub_->publish(output_current_pose_msg);
 }
 

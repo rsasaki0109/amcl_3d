@@ -42,7 +42,6 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("params_file", default_value=PathJoinSubstitution([package_share, "config", "amcl_3d.params.yaml"])),
             DeclareLaunchArgument("use_sim_time", default_value="true"),
-            DeclareLaunchArgument("world_frame_id", default_value="map"),
             DeclareLaunchArgument("map_frame_id", default_value="map"),
             DeclareLaunchArgument("base_link_frame_id", default_value="base_link"),
             DeclareLaunchArgument("odom_frame_id", default_value="odom"),
@@ -60,14 +59,13 @@ def generate_launch_description():
             DeclareLaunchArgument("clock_publish_hz", default_value="100.0"),
             DeclareLaunchArgument("open_rviz", default_value="true"),
             DeclareLaunchArgument("rviz_config", default_value=rviz_config),
-            DeclareLaunchArgument("publish_world_to_static_tf", default_value="false"),
+            DeclareLaunchArgument("publish_map_to_static_tf", default_value="false"),
             DeclareLaunchArgument("static_child_frame_id", default_value="cad"),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(amcl_launch),
                 launch_arguments={
                     "params_file": LaunchConfiguration("params_file"),
                     "use_sim_time": LaunchConfiguration("use_sim_time"),
-                    "world_frame_id": LaunchConfiguration("world_frame_id"),
                     "map_frame_id": LaunchConfiguration("map_frame_id"),
                     "base_link_frame_id": LaunchConfiguration("base_link_frame_id"),
                     "odom_frame_id": LaunchConfiguration("odom_frame_id"),
@@ -83,7 +81,7 @@ def generate_launch_description():
                 package="tf2_ros",
                 executable="static_transform_publisher",
                 name="world_to_static_frame_publisher",
-                condition=IfCondition(LaunchConfiguration("publish_world_to_static_tf")),
+                condition=IfCondition(LaunchConfiguration("publish_map_to_static_tf")),
                 arguments=[
                     "--x",
                     "0.0",
@@ -98,7 +96,7 @@ def generate_launch_description():
                     "--yaw",
                     "0.0",
                     "--frame-id",
-                    LaunchConfiguration("world_frame_id"),
+                    LaunchConfiguration("map_frame_id"),
                     "--child-frame-id",
                     LaunchConfiguration("static_child_frame_id"),
                 ],
