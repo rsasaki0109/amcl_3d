@@ -77,6 +77,37 @@ install(DIRECTORY config launch rviz
   DESTINATION share/${PROJECT_NAME}
 )
 
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE
+    ament_cmake_copyright
+    ament_cmake_cpplint
+    ament_cmake_uncrustify
+    ament_cmake_flake8
+  )
+  ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(amcl_3d_test
+    src/test.cpp
+    src/mcl.cpp
+    src/particle_filter.cpp
+    src/xorshift128.cpp
+    src/time.cpp
+    src/resample_noise/normal_distribution.cpp
+    src/measurement_model/lidar_measurement_model.cpp
+    src/measurement_model/ndt_pose_measurement_model.cpp
+    src/prediction_model/foo_prediction_model.cpp
+  )
+  target_compile_features(amcl_3d_test PUBLIC cxx_std_17)
+  target_include_directories(amcl_3d_test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    ${PCL_INCLUDE_DIRS}
+  )
+  target_link_libraries(amcl_3d_test Eigen3::Eigen ${PCL_LIBRARIES})
+  ament_target_dependencies(amcl_3d_test rclcpp builtin_interfaces)
+endif()
+
 ament_export_include_directories(include)
 ament_export_dependencies(
   builtin_interfaces

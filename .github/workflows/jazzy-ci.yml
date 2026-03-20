@@ -23,5 +23,5 @@ jobs:
           package-name: amcl_3d
           target-ros2-distro: jazzy
           import-token: ${{ secrets.GITHUB_TOKEN }}
-          skip-tests: true
+          skip-tests: false
           coverage-result: false
