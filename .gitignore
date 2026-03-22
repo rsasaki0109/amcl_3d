@@ -3,3 +3,6 @@ install/
 log/
 demo_data/
 __pycache__/
+maps/
+bags/
+*.g2o

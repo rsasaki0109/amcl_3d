@@ -7,6 +7,25 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
+def _map_pcd_publisher(context):
+    pcd_file = LaunchConfiguration("map_pcd_file").perform(context).strip()
+    if not pcd_file:
+        return [LogInfo(msg="map_pcd_file is empty, skipping PCD publisher")]
+
+    map_topic = LaunchConfiguration("input_map").perform(context)
+    pcd_frame = LaunchConfiguration("map_pcd_frame").perform(context)
+
+    pkg_lib = FindPackageShare("amcl_3d").perform(context).replace("/share/amcl_3d", "/lib/amcl_3d")
+    script = pkg_lib + "/publish_pcd.py"
+
+    return [
+        ExecuteProcess(
+            cmd=["python3", script, pcd_file, map_topic, pcd_frame],
+            output="screen",
+        )
+    ]
+
+
 def _bag_play_action(context):
     bag_path = LaunchConfiguration("bag_path").perform(context).strip()
     if not bag_path:
@@ -29,6 +48,10 @@ def _bag_play_action(context):
         cmd.append("--loop")
     if LaunchConfiguration("bag_start_paused").perform(context).lower() == "true":
         cmd.append("--start-paused")
+
+    qos_overrides = LaunchConfiguration("qos_overrides_path").perform(context).strip()
+    if qos_overrides:
+        cmd.extend(["--qos-profile-overrides-path", qos_overrides])
 
     return [ExecuteProcess(cmd=cmd, output="screen")]
 
@@ -57,6 +80,9 @@ def generate_launch_description():
             DeclareLaunchArgument("bag_start_paused", default_value="false"),
             DeclareLaunchArgument("bag_start_offset", default_value="0.0"),
             DeclareLaunchArgument("clock_publish_hz", default_value="100.0"),
+            DeclareLaunchArgument("qos_overrides_path", default_value=""),
+            DeclareLaunchArgument("map_pcd_file", default_value=""),
+            DeclareLaunchArgument("map_pcd_frame", default_value="map"),
             DeclareLaunchArgument("open_rviz", default_value="true"),
             DeclareLaunchArgument("rviz_config", default_value=rviz_config),
             DeclareLaunchArgument("publish_map_to_static_tf", default_value="false"),
@@ -111,5 +137,6 @@ def generate_launch_description():
                 output="screen",
             ),
             OpaqueFunction(function=_bag_play_action),
+            OpaqueFunction(function=_map_pcd_publisher),
         ]
     )
