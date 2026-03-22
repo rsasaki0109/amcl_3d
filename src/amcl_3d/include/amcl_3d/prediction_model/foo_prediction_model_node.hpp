@@ -15,7 +15,8 @@ namespace amcl_3d
 class FooPredictionModelNode
 {
   public:
-    FooPredictionModelNode(rclcpp::Node & node, std::shared_ptr<Amcl> amcl);
+    FooPredictionModelNode(rclcpp::Node & node, std::shared_ptr<Amcl> amcl,
+                           const PredictionNoiseParam &noise_param = PredictionNoiseParam{});
     std::shared_ptr<PredictionModelInterface> getPredictionModel() const;
 
   private:

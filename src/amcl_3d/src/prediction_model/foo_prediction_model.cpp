@@ -8,6 +8,12 @@ FooPredictionModel::FooPredictionModel()
     vel_ << 0.0, 0.0, 0.0;
     omega_ << 0.0, 0.0, 0.0;
 }
+FooPredictionModel::FooPredictionModel(const PredictionNoiseParam &noise_param)
+    : noise_param_(noise_param)
+{
+    vel_ << 0.0, 0.0, 0.0;
+    omega_ << 0.0, 0.0, 0.0;
+}
 FooPredictionModel::FooPredictionModel(const Eigen::Vector3d &vel,
                                        const Eigen::Vector3d &omega)
     : vel_(vel), omega_(omega)
@@ -18,10 +24,10 @@ bool FooPredictionModel::predict(State &state, const double dt_sec)
 {
     Position local_position;
     Quat local_quat;
-    std::normal_distribution<double> vel_scale_noise(1.0, 1.0),
-        vel_bias_noise(0.0, 0.2),
-        omega_scale_noise(1.0, 0.5),
-        omega_bias_noise(0.0, 0.1);
+    std::normal_distribution<double> vel_scale_noise(noise_param_.vel_scale_mean, noise_param_.vel_scale_std),
+        vel_bias_noise(noise_param_.vel_bias_mean, noise_param_.vel_bias_std),
+        omega_scale_noise(noise_param_.omega_scale_mean, noise_param_.omega_scale_std),
+        omega_bias_noise(noise_param_.omega_bias_mean, noise_param_.omega_bias_std);
     double vel = vel_.x() * vel_scale_noise(rand_) + vel_bias_noise(rand_);
     double omega = omega_.z() * omega_scale_noise(rand_) + omega_bias_noise(rand_);
     const double r = vel / omega;

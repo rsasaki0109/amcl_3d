@@ -133,6 +133,28 @@ Amcl3dNode::Amcl3dNode() : rclcpp::Node("amcl_3d")
       this->declare_parameter<double>("amcl_param.kld_sampling.y_bin_width", 0.2);
   amcl_param.kld_sampling.z_bin_width =
       this->declare_parameter<double>("amcl_param.kld_sampling.z_bin_width", 0.2);
+  amcl_param.prediction_noise.vel_scale_mean =
+      this->declare_parameter<double>("amcl_param.prediction_noise.vel_scale_mean", 1.0);
+  amcl_param.prediction_noise.vel_scale_std =
+      this->declare_parameter<double>("amcl_param.prediction_noise.vel_scale_std", 0.2);
+  amcl_param.prediction_noise.vel_bias_mean =
+      this->declare_parameter<double>("amcl_param.prediction_noise.vel_bias_mean", 0.0);
+  amcl_param.prediction_noise.vel_bias_std =
+      this->declare_parameter<double>("amcl_param.prediction_noise.vel_bias_std", 0.05);
+  amcl_param.prediction_noise.omega_scale_mean =
+      this->declare_parameter<double>("amcl_param.prediction_noise.omega_scale_mean", 1.0);
+  amcl_param.prediction_noise.omega_scale_std =
+      this->declare_parameter<double>("amcl_param.prediction_noise.omega_scale_std", 0.2);
+  amcl_param.prediction_noise.omega_bias_mean =
+      this->declare_parameter<double>("amcl_param.prediction_noise.omega_bias_mean", 0.0);
+  amcl_param.prediction_noise.omega_bias_std =
+      this->declare_parameter<double>("amcl_param.prediction_noise.omega_bias_std", 0.05);
+  amcl_param.lidar_measurement.random_sample_num = static_cast<int>(
+      this->declare_parameter<int64_t>("amcl_param.lidar_measurement.random_sample_num", 300));
+  amcl_param.lidar_measurement.max_dist =
+      this->declare_parameter<double>("amcl_param.lidar_measurement.max_dist", 1.0);
+  amcl_param.lidar_measurement.sigma =
+      this->declare_parameter<double>("amcl_param.lidar_measurement.sigma", 0.5);
 
   map_frame_id_ = this->declare_parameter<std::string>("map_frame_id", "map");
   base_link_frame_id_ = this->declare_parameter<std::string>("base_link_frame_id", "base_link");
@@ -144,7 +166,7 @@ Amcl3dNode::Amcl3dNode() : rclcpp::Node("amcl_3d")
   }
 
   amcl_ = std::make_shared<Amcl>(amcl_param);
-  prediction_model_node_ = std::make_shared<FooPredictionModelNode>(*this, amcl_);
+  prediction_model_node_ = std::make_shared<FooPredictionModelNode>(*this, amcl_, amcl_param.prediction_noise);
 
   const auto latched_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
   pf_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>("particles", latched_qos);
