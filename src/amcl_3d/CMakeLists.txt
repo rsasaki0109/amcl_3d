@@ -66,6 +66,7 @@ install(TARGETS amcl_3d_node
 
 install(PROGRAMS
   tools/convert_ros1_bag_to_ros2.sh
+  scripts/publish_pcd.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
