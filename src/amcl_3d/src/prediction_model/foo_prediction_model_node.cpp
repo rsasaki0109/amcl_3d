@@ -4,10 +4,11 @@
 
 namespace amcl_3d
 {
-FooPredictionModelNode::FooPredictionModelNode(rclcpp::Node & node, std::shared_ptr<Amcl> amcl)
+FooPredictionModelNode::FooPredictionModelNode(rclcpp::Node & node, std::shared_ptr<Amcl> amcl,
+                                               const PredictionNoiseParam &noise_param)
     : node_(node), amcl_(std::move(amcl))
 {
-    prediction_model_ = std::make_shared<FooPredictionModel>();
+    prediction_model_ = std::make_shared<FooPredictionModel>(noise_param);
     odom_sub_ = node_.create_subscription<nav_msgs::msg::Odometry>(
         "odom",
         rclcpp::SensorDataQoS(),

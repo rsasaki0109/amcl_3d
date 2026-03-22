@@ -59,12 +59,33 @@ struct KLDSamplingParam
     double z_bin_width;
 };
 
+struct PredictionNoiseParam
+{
+    double vel_scale_mean = 1.0;
+    double vel_scale_std = 0.2;
+    double vel_bias_mean = 0.0;
+    double vel_bias_std = 0.05;
+    double omega_scale_mean = 1.0;
+    double omega_scale_std = 0.2;
+    double omega_bias_mean = 0.0;
+    double omega_bias_std = 0.05;
+};
+
+struct LidarMeasurementParam
+{
+    int random_sample_num = 300;
+    double max_dist = 1.0;
+    double sigma = 0.5;
+};
+
 struct AmclParam
 {
     AugmentedMCLParam augmented_mcl;
     ResampleTimingParam resample_timing;
     KLDSamplingParam kld_sampling;
     InitialPoseParam init_pose;
+    PredictionNoiseParam prediction_noise;
+    LidarMeasurementParam lidar_measurement;
 };
 
 typedef std::vector<State> Particles;
