@@ -44,9 +44,9 @@ bool Amcl::measureLidar(const Time &time, const pcl::PointCloud<pcl::PointXYZ>::
     if (particles_ptr == nullptr || particles_ptr->empty())
         return false;
     MeasurementState measurement_state;
-    const size_t random_sample_num = 100;
-    const double max_dist = 0.2;
-    const double sigma = 1.0;
+    const size_t random_sample_num = param_.lidar_measurement.random_sample_num;
+    const double max_dist = param_.lidar_measurement.max_dist;
+    const double sigma = param_.lidar_measurement.sigma;
     std::shared_ptr<MeasurementModelInterface> model =
         std::make_shared<LidarMeasurementModel>(kd_map_ptr_, measuement, random_sample_num, max_dist, sigma);
     pf_ptr_->measure(model, measurement_state);
@@ -106,10 +106,7 @@ bool Amcl::checkResample(const MeasurementState &measurement_state)
             std::make_shared<NormalDistribution>(/*avg*/ 0.0, /*var*/ param_.augmented_mcl.noise_yaw_var);
         ParticleFilter::NoiseGenerators
             noise_gens(x_noise_ptr, y_noise_ptr, z_noise_ptr, roll_noise_ptr, pitch_noise_ptr, yaw_noise_ptr);
-        pf_ptr_->resample(pf_ptr_->getParticleNum()); // simple resample
-        // pf_ptr_->resample(pf_ptr_->getParticleNum(), 0.2, noise_gens); // random resample
-        // pf_ptr_->resample(pf_ptr_->getParticleNum(), random_sampling_ratio, noise_gens); // augmented resample
-        // pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // random resample and kld sample
+        pf_ptr_->resample(param_.kld_sampling, random_sampling_ratio, noise_gens); // KLD + augmented resample
     }
     return true;
 }
