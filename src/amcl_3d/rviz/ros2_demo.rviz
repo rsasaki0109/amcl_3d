@@ -95,6 +95,24 @@ Visualization Manager:
       Color: 25; 255; 0
       Shape: Arrow
       Value: true
+    - Class: rviz_default_plugins/Odometry
+      Enabled: true
+      Name: Odometry
+      Topic:
+        Value: /odom
+      Color: 25; 25; 255
+      Position Tolerance: 0.100000001
+      Angle Tolerance: 0.100000001
+      Keep: 200
+      Shape: Arrow
+      Arrow Length: 0.300000012
+      Axes Length: 0.300000012
+      Axes Radius: 0.00999999978
+      Head Length: 0.0700000003
+      Head Radius: 0.0299999993
+      Shaft Length: 0.230000004
+      Shaft Radius: 0.00999999978
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
