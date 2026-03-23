@@ -9,6 +9,7 @@ class FooPredictionModel : public PredictionModelInterface
 {
 public:
   FooPredictionModel();
+  FooPredictionModel(const PredictionNoiseParam &noise_param);
   FooPredictionModel(const Eigen::Vector3d &vel, const Eigen::Vector3d &omega);
   bool predict(State &state, const double dt_sec) override;
   bool measumentLinearVelocity(const Eigen::Vector3d &vel);
@@ -19,6 +20,7 @@ public:
 private:
   Eigen::Vector3d vel_;
   Eigen::Vector3d omega_;
+  PredictionNoiseParam noise_param_;
   static XorShift128 rand_;
 };
 
