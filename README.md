@@ -4,19 +4,46 @@
 
 3D AMCL (Adaptive Monte Carlo Localization) for ROS 2 Jazzy.
 
-The plot below compares `odom` and AMCL XY trajectories from a `short_test` rosbag2 replay.
+## Evaluation Results
+
+### short_test (267 s, indoor)
 
 ![short_test amcl vs odom xy](reports/assets/short_test_amcl_vs_odom_xy.png)
 
-- `/odom` is aligned to the `map` frame using the initial pose and yaw for comparison
-- AMCL trajectory length: `17.9 m`
-- Odom trajectory length: `15.8 m`
-- Mean XY difference: `0.22 m`
-- XY RMSE: `0.25 m`
-- Max XY difference: `0.46 m`
-- End-point XY difference: `0.32 m`
+| Metric | Value |
+|--------|-------|
+| Odom trajectory length | 15.8 m |
+| Mean XY error | 3.37 m |
+| XY RMSE | 3.75 m |
+| Max XY error | 6.92 m |
+| End-point XY error | 2.93 m |
+
+### Kinematic-ICP Husky (122 s, outdoor)
+
+![husky amcl vs odom xy](reports/assets/husky_amcl_vs_odom_xy.png)
+
+| Metric | Value |
+|--------|-------|
+| Odom trajectory length | 83.5 m |
+| Mean XY error | 19.74 m |
+| XY RMSE | 23.10 m |
+| Max XY error | 39.13 m |
+| End-point XY error | 7.28 m |
+
+## Quick Start
+
 - Build / run instructions: [src/amcl_3d/README.md](src/amcl_3d/README.md)
-- Trajectory plot script: [reports/generate_short_test_trajectory.py](reports/generate_short_test_trajectory.py)
+
+## Evaluation
+
+```bash
+# Run automated evaluation (launches amcl_3d, plays bag, generates plots)
+./scripts/run_evaluation.sh short_test
+./scripts/run_evaluation.sh husky
+```
+
+- Evaluation script: [scripts/run_evaluation.sh](scripts/run_evaluation.sh)
+- Trajectory plot generator: [reports/generate_trajectory.py](reports/generate_trajectory.py)
 
 ## Branches
 
