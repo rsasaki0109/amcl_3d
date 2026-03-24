@@ -10,12 +10,12 @@ amcl_3d:
         alpha_slow: 0.05
         w_fast: 0.5
         w_slow: 0.5
-        noise_x_var: 0.3
-        noise_y_var: 0.3
-        noise_z_var: 0.1
-        noise_roll_var: 0.05
-        noise_pitch_var: 0.05
-        noise_yaw_var: 0.05
+        noise_x_var: 0.1
+        noise_y_var: 0.1
+        noise_z_var: 0.05
+        noise_roll_var: 0.02
+        noise_pitch_var: 0.02
+        noise_yaw_var: 0.02
       init_pose:
         initial_particle_num: 500
       resample_timing:
@@ -30,13 +30,13 @@ amcl_3d:
         z_bin_width: 0.5
       prediction_noise:
         vel_scale_mean: 1.0
-        vel_scale_std: 0.2
+        vel_scale_std: 0.1
         vel_bias_mean: 0.0
-        vel_bias_std: 0.05
+        vel_bias_std: 0.02
         omega_scale_mean: 1.0
-        omega_scale_std: 0.2
+        omega_scale_std: 0.1
         omega_bias_mean: 0.0
-        omega_bias_std: 0.05
+        omega_bias_std: 0.02
       lidar_measurement:
         random_sample_num: 300
         max_dist: 1.0

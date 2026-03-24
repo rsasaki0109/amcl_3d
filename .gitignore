@@ -6,3 +6,4 @@ __pycache__/
 maps/
 bags/
 *.g2o
+reports/*.csv
