@@ -58,6 +58,7 @@ rclcpp::Time stampOrZero(const builtin_interfaces::msg::Time & stamp, const rclc
   }
   return rclcpp::Time(stamp);
 }
+
 } // namespace
 
 class Amcl3dNode : public rclcpp::Node
@@ -85,7 +86,9 @@ private:
   std::string map_frame_id_;
   std::string base_link_frame_id_;
   std::string odom_frame_id_;
+  std::string pc2_frame_id_filter_;
   std::shared_ptr<FooPredictionModelNode> prediction_model_node_;
+  Time last_pc2_time_;
 };
 
 Amcl3dNode::Amcl3dNode() : rclcpp::Node("amcl_3d")
@@ -159,6 +162,7 @@ Amcl3dNode::Amcl3dNode() : rclcpp::Node("amcl_3d")
   map_frame_id_ = this->declare_parameter<std::string>("map_frame_id", "map");
   base_link_frame_id_ = this->declare_parameter<std::string>("base_link_frame_id", "base_link");
   odom_frame_id_ = this->declare_parameter<std::string>("odom_frame_id", "odom");
+  pc2_frame_id_filter_ = sanitizeFrameId(this->declare_parameter<std::string>("pc2_frame_id_filter", ""));
   const double publish_rate = this->declare_parameter<double>("publish_rate", 10.0);
   if (publish_rate <= 0.0)
   {
@@ -272,27 +276,36 @@ void Amcl3dNode::initialPoseCallback(
       covariance(4, 4) == 0.0 && covariance(5, 5) == 0.0)
   {
     RCLCPP_WARN(this->get_logger(), "covariance is all zeros; applying fallback defaults");
-    covariance(0, 0) = 0.5;
-    covariance(1, 1) = 0.5;
-    covariance(2, 2) = 0.5;
-    covariance(3, 3) = 0.1;
-    covariance(4, 4) = 0.1;
-    covariance(5, 5) = 0.1;
+    covariance(0, 0) = 0.1;
+    covariance(1, 1) = 0.1;
+    covariance(2, 2) = 0.1;
+    covariance(3, 3) = 0.05;
+    covariance(4, 4) = 0.05;
+    covariance(5, 5) = 0.05;
   }
 
   if (!amcl_->setInitialPose(position, quat, covariance))
   {
     RCLCPP_ERROR(this->get_logger(), "failed to set initial pose");
   }
+  last_pc2_time_ = Time();
 }
 
 void Amcl3dNode::pc2Callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr input_pc2_msg)
 {
   auto ros_pc2 = input_pc2_msg;
-  const Time measurement_time = stampOrNow(ros_pc2->header.stamp, *this);
-  amcl_->predict(prediction_model_node_->getPredictionModel(), Time::fromRclcppTime(this->get_clock()->now()));
-
   const std::string source_frame_id = sanitizeFrameId(ros_pc2->header.frame_id);
+  if (!pc2_frame_id_filter_.empty() && source_frame_id != pc2_frame_id_filter_)
+  {
+    return;
+  }
+
+  const Time measurement_time = stampOrNow(ros_pc2->header.stamp, *this);
+  if (!last_pc2_time_.isZero() && Time::getDiff(last_pc2_time_, measurement_time) <= 0.0)
+  {
+    return;
+  }
+
   if (source_frame_id != base_link_frame_id_)
   {
     try
@@ -315,13 +328,17 @@ void Amcl3dNode::pc2Callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
 
   auto pc_measurement = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
   pcl::fromROSMsg(*ros_pc2, *pc_measurement);
-  amcl_->measureLidar(measurement_time, pc_measurement);
+  amcl_->predict(prediction_model_node_->getPredictionModel(), measurement_time);
+  if (!amcl_->measureLidar(measurement_time, pc_measurement))
+  {
+    return;
+  }
+  last_pc2_time_ = measurement_time;
 }
 
 void Amcl3dNode::publishTimerCallback()
 {
   const rclcpp::Time current_time = this->get_clock()->now();
-  amcl_->predict(prediction_model_node_->getPredictionModel(), Time::fromRclcppTime(current_time));
 
   geometry_msgs::msg::PoseArray output_particle_msg;
   output_particle_msg.header.stamp = current_time;

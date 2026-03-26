@@ -38,7 +38,6 @@ void FooPredictionModelNode::odomCallback(const nav_msgs::msg::Odometry::ConstSh
     omega = 0.5 * (omega + prediction_model_->getAngularVelocity());
     prediction_model_->measumentLinearVelocity(vel);
     prediction_model_->measumentAngularVelocity(omega);
-    amcl_->predict(prediction_model_, Time::fromRclcppTime(node_.get_clock()->now()));
 }
 
 void FooPredictionModelNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr input_imu_msg)

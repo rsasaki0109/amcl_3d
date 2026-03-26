@@ -33,7 +33,7 @@ bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_
     v_log_likelihood.reserve(particles_ptr->size());
     const double max_squared_dist = max_dist_ * max_dist_; // [m^2]
     const double denominator = 2 * sigma_ * sigma_;
-    const double distance_penelty = 0.2;
+    const double sample_count = static_cast<double>(v_random_sample_index_.size());
     for (const auto &state : *mesurement_point_particles_ptr)
     {
         /*
@@ -71,10 +71,11 @@ bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_
                 squared_dist = max_squared_dist;
             }
             // first step : log likelihood += -(x-mu)^2
-            log_likelihood += -1.0 * squared_dist * distance_penelty;
+            log_likelihood += -1.0 * squared_dist;
         }
-        // second step : log likelihood *= 1.0/(2*sigma^2)
-        log_likelihood /= denominator; // denominator = (2*sigma^2)
+        // Average the per-point likelihood contribution so correlated lidar points do not
+        // make the filter overconfident and oscillatory.
+        log_likelihood /= denominator * sample_count;
         // std::cout << " log_likelihood: " << log_likelihood << std::endl;
 
         v_log_likelihood.push_back(log_likelihood);
@@ -98,11 +99,10 @@ bool LidarMeasurementModel::measure(std::shared_ptr<const Particles> mesurement_
         particles_ptr->at(i).weight *= std::exp(v_log_likelihood.at(i) - max_log_likelihood);
     }
     // calc raw weight average for augmented mcl
+    // Use per-point-averaged log-likelihood so values are in a reasonable range
     double weight_sum = 0.0;
     for (size_t i = 0; i < particles_ptr->size(); ++i)
     {
-        // std::cout << "std::exp(v_log_likelihood.at(" << i << "))"
-        //           << ", " << std::exp(v_log_likelihood.at(i)) << std::endl;
         weight_sum += std::exp(v_log_likelihood.at(i));
     }
     measurement_state.raw_weight_avg = weight_sum / (double)particles_ptr->size();
@@ -118,7 +118,7 @@ void LidarMeasurementModel::updateRandomSampleIndexVec(const size_t random_sampl
     {
         return;
     }
-    std::uniform_int_distribution<int> engine(0, limited_random_sample_num - 1);
+    std::uniform_int_distribution<int> engine(0, measurement_ptr_->size() - 1);
     // push measurement point index to vector for random sampling
     for (size_t i = 0; i < limited_random_sample_num; ++i)
     {

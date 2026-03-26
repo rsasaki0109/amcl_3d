@@ -40,7 +40,7 @@ case "$PROFILE" in
         BAG_RATE="1.0"
         # Bag duration 267s at rate 1.0 → ~267s wall time + startup buffer
         BAG_WALL_TIMEOUT=300
-        NEED_INITIALPOSE=false
+        NEED_INITIALPOSE=true
         INITIALPOSE_X="0.075"
         INITIALPOSE_Y="-0.020"
         INITIALPOSE_Z="0.0"
@@ -103,6 +103,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
+wait_for_service() {
+    local service_name="$1"
+    local timeout_sec="$2"
+    local elapsed=0
+    while [[ $elapsed -lt $timeout_sec ]]; do
+        if ros2 service type "$service_name" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+    echo "Service not available: $service_name" >&2
+    return 1
+}
+
 # ── 1. Launch amcl_3d + bag play together via rosbag launch ────────
 echo ">>> Launching amcl_3d with bag play (simultaneous start)..."
 LAUNCH_ARGS=(
@@ -112,6 +127,7 @@ LAUNCH_ARGS=(
     "bag_path:=${BAG_PATH}"
     "bag_rate:=${BAG_RATE}"
     "bag_loop:=false"
+    "bag_start_paused:=true"
     "input_map:=${INPUT_MAP}"
     "input_odom:=${INPUT_ODOM}"
     "input_pc2:=${PC2_TOPIC}"
@@ -128,6 +144,7 @@ ros2 launch "${LAUNCH_ARGS[@]}" 2>/dev/null &
 LAUNCH_PID=$!
 echo ">>> Waiting for nodes to initialize..."
 sleep 10
+wait_for_service /rosbag2_player/resume 30
 
 # ── 2. Publish initial pose (if bag does not contain /initialpose) ──
 if [[ "${NEED_INITIALPOSE}" == "true" ]]; then
@@ -145,7 +162,12 @@ ros2 topic echo --csv /current_pose geometry_msgs/msg/PoseStamped > "$CSV_FILE" 
 CSV_PID=$!
 sleep 1
 
-# ── 4. Wait for bag playback to finish ─────────────────────────────
+# ── 4. Resume bag playback after recorder + initial pose are ready ──
+echo ">>> Resuming bag playback..."
+ros2 service call /rosbag2_player/resume rosbag2_interfaces/srv/Resume "{}" >/dev/null
+sleep 1
+
+# ── 5. Wait for bag playback to finish ─────────────────────────────
 echo ">>> Waiting for bag playback (~${BAG_WALL_TIMEOUT}s timeout)..."
 ELAPSED=0
 while kill -0 "$LAUNCH_PID" 2>/dev/null && [[ $ELAPSED -lt $BAG_WALL_TIMEOUT ]]; do
@@ -154,12 +176,15 @@ while kill -0 "$LAUNCH_PID" 2>/dev/null && [[ $ELAPSED -lt $BAG_WALL_TIMEOUT ]];
     # Check if CSV is still growing (bag is still playing)
     CSV_LINES=$(wc -l < "$CSV_FILE" 2>/dev/null || echo "0")
     echo "  [${ELAPSED}s] CSV lines: ${CSV_LINES}"
+    if ! ros2 service type /rosbag2_player/resume >/dev/null 2>&1; then
+        break
+    fi
 done
 
 echo ">>> Bag playback finished or timeout reached."
 sleep 3
 
-# ── 5. Stop recording & launch ──────────────────────────────────────
+# ── 6. Stop recording & launch ──────────────────────────────────────
 echo ">>> Stopping CSV recording and launch..."
 kill "$CSV_PID" 2>/dev/null || true
 wait "$CSV_PID" 2>/dev/null || true
@@ -169,7 +194,7 @@ kill "$LAUNCH_PID" 2>/dev/null || true
 wait "$LAUNCH_PID" 2>/dev/null || true
 LAUNCH_PID=""
 
-# ── 6. Generate plots ───────────────────────────────────────────────
+# ── 7. Generate plots ───────────────────────────────────────────────
 echo ">>> Generating plots..."
 mkdir -p "$(dirname "$OUT_TRAJ")"
 

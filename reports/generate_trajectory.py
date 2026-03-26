@@ -166,6 +166,29 @@ def trajectory_arrays(samples: list[PoseSample]) -> tuple[np.ndarray, np.ndarray
     )
 
 
+def angle_diff(a: float, b: float) -> float:
+    return math.atan2(math.sin(a - b), math.cos(a - b))
+
+
+def trim_leading_latched_outlier(samples: list[PoseSample]) -> list[PoseSample]:
+    if len(samples) < 4:
+        return samples
+
+    first = samples[0]
+    second = samples[1]
+    jump_xy = math.hypot(second.x - first.x, second.y - first.y)
+    jump_yaw = abs(angle_diff(second.yaw, first.yaw))
+
+    clustered_tail = samples[1:4]
+    tail_spread = max(math.hypot(sample.x - second.x, sample.y - second.y) for sample in clustered_tail)
+    tail_yaw_spread = max(abs(angle_diff(sample.yaw, second.yaw)) for sample in clustered_tail)
+
+    if (jump_xy > 0.05 or jump_yaw > 0.5) and tail_spread < 0.02 and tail_yaw_spread < 0.1:
+        return samples[1:]
+
+    return samples
+
+
 def compute_path_length(x: np.ndarray, y: np.ndarray) -> float:
     return float(np.sum(np.hypot(np.diff(x), np.diff(y))))
 
@@ -432,7 +455,7 @@ def main() -> int:
     if args.trajectory_output_png is None and args.compare_odom_output_png is None:
         raise ValueError("either --trajectory-output-png or --compare-odom-output-png must be set")
 
-    samples = parse_csv(args.input_csv)
+    samples = trim_leading_latched_outlier(parse_csv(args.input_csv))
 
     # Map loading: --map-pcd-file takes priority, then bag topic (unless --no-bag-map)
     map_points = None
