@@ -1,5 +1,9 @@
 #include "amcl_3d/particle_filter.hpp"
 // #include <iostream>
+
+#include <cmath>
+#include <limits>
+
 namespace amcl_3d
 {
 ParticleFilter::ParticleFilter() : particles_ptr_(std::make_shared<Particles>()) {}
@@ -272,6 +276,10 @@ bool ParticleFilter::resample(std::shared_ptr<Particles> new_particles_ptr, cons
 State ParticleFilter::getMMSE()
 {
     State mmse_state;
+    if (particles_ptr_->empty())
+    {
+        return mmse_state;
+    }
     mmse_state.position.x() = 0.0;
     mmse_state.position.y() = 0.0;
     mmse_state.position.z() = 0.0;
@@ -279,6 +287,10 @@ State ParticleFilter::getMMSE()
     for (const auto &particle : *particles_ptr_)
     {
         weight_sum += particle.weight;
+    }
+    if (!std::isfinite(weight_sum) || weight_sum <= std::numeric_limits<double>::min())
+    {
+        return getMAP();
     }
     mmse_state.weight = weight_sum;
     for (const auto &particle : *particles_ptr_)
@@ -320,10 +332,15 @@ State ParticleFilter::getMMSE()
 State ParticleFilter::getMAP()
 {
     State map_state;
-    double max_weight = 0.0;
+    if (particles_ptr_->empty())
+    {
+        return map_state;
+    }
+    map_state = particles_ptr_->front();
+    double max_weight = map_state.weight;
     for (const auto &particle : *particles_ptr_)
     {
-        if (max_weight < particle.weight)
+        if (!std::isfinite(max_weight) || max_weight < particle.weight)
         {
             max_weight = particle.weight;
             map_state = particle;
@@ -380,10 +397,23 @@ void ParticleFilter::normalizeWeight()
 
 void ParticleFilter::normalizeWeight(std::shared_ptr<Particles> particles_ptr)
 {
+    if (particles_ptr == nullptr || particles_ptr->empty())
+    {
+        return;
+    }
     double weight_sum = 0.0;
     for (const auto &particle : *particles_ptr)
     {
         weight_sum += particle.weight;
+    }
+    if (!std::isfinite(weight_sum) || weight_sum <= std::numeric_limits<double>::min())
+    {
+        const double uniform_weight = 1.0 / static_cast<double>(particles_ptr->size());
+        for (auto &particle : *particles_ptr)
+        {
+            particle.weight = uniform_weight;
+        }
+        return;
     }
     for (auto &particle : *particles_ptr)
     {

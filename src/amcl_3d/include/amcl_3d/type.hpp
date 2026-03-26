@@ -14,14 +14,14 @@ namespace amcl_3d
 {
 struct State
 {
-    Position position; // x,y,z
-    Quat quat;         // x,y,z,w
-    double weight;
+    Position position = Position::Zero(); // x,y,z
+    Quat quat = Quat::Identity();         // x,y,z,w
+    double weight = 0.0;
 };
 
 struct MeasurementState
 {
-    double raw_weight_avg;
+    double raw_weight_avg = 0.0;
 };
 
 struct AugmentedMCLParam

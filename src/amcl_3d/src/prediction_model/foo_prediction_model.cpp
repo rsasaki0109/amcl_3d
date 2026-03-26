@@ -1,5 +1,4 @@
 #include "amcl_3d/prediction_model/foo_prediction_model.hpp"
-#include <iostream>
 namespace amcl_3d
 {
 XorShift128 FooPredictionModel::rand_;
@@ -30,9 +29,19 @@ bool FooPredictionModel::predict(State &state, const double dt_sec)
         omega_bias_noise(noise_param_.omega_bias_mean, noise_param_.omega_bias_std);
     double vel = vel_.x() * vel_scale_noise(rand_) + vel_bias_noise(rand_);
     double omega = omega_.z() * omega_scale_noise(rand_) + omega_bias_noise(rand_);
-    const double r = vel / omega;
-    local_position.x() = r * std::sin(omega * dt_sec);
-    local_position.y() = -r * std::cos(omega * dt_sec) + r;
+    constexpr double omega_eps = 1e-6;
+    if (std::abs(omega) < omega_eps)
+    {
+        // straight-line approximation when omega is near zero
+        local_position.x() = vel * dt_sec;
+        local_position.y() = 0.0;
+    }
+    else
+    {
+        const double r = vel / omega;
+        local_position.x() = r * std::sin(omega * dt_sec);
+        local_position.y() = -r * std::cos(omega * dt_sec) + r;
+    }
     local_position.z() = 0.0;
     local_quat = Quat(Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX())                // roll
                       * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())              // pitch
